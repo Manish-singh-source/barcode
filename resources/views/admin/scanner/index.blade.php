@@ -13,8 +13,7 @@
         <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="card-body p-4 p-xl-5">
                 <div id="cameraFrame" class="scanner-frame rounded-4 p-3 mb-4 border border-2 border-dashed border-secondary-subtle">
-                    <video id="cameraPreview" class="w-100 rounded-3" autoplay muted playsinline style="max-height: 300px; background: #000; object-fit: cover;"></video>
-                    <div id="scannerReader" class="visually-hidden"></div>
+                    <div id="scannerReader" class="scanner-reader"></div>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
@@ -99,6 +98,34 @@
         border-style: dashed !important;
     }
 
+    .scanner-reader {
+        min-height: 320px;
+        border-radius: 1rem;
+        overflow: hidden;
+        background: #000;
+        position: relative;
+    }
+
+    .scanner-reader video,
+    .scanner-reader canvas {
+        width: 100% !important;
+        height: 320px !important;
+        object-fit: cover;
+    }
+
+    .scanner-flash {
+        position: absolute;
+        inset: 0;
+        background: rgba(25, 135, 84, 0.35);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    .scanner-flash.is-visible {
+        animation: scanFlash 420ms ease-out;
+    }
+
     #resultBorder.is-success {
         border-color: #198754 !important;
     }
@@ -130,6 +157,12 @@
         0%, 100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.12); }
         50% { box-shadow: 0 0 0 8px rgba(25, 135, 84, 0.02); }
     }
+
+    @keyframes scanFlash {
+        0% { opacity: 0; }
+        15% { opacity: 1; }
+        100% { opacity: 0; }
+    }
 </style>
 @endpush
 
@@ -139,7 +172,6 @@
     (function () {
         const historyKey = 'admin_scan_history';
         const cameraFrame = document.getElementById('cameraFrame');
-        const cameraPreview = document.getElementById('cameraPreview');
         const scannerReader = document.getElementById('scannerReader');
         const startCameraBtn = document.getElementById('startCameraBtn');
         const stopCameraBtn = document.getElementById('stopCameraBtn');
@@ -157,19 +189,13 @@
         const historyList = document.getElementById('historyList');
         const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
-        let mediaStream = null;
         let html5Qrcode = null;
         let scannerRunning = false;
         let scanInProgress = false;
+        let lastDecodedText = '';
         let currentResultText = '';
-
-        function authHeaders() {
-            return {
-                Authorization: 'Bearer ' + localStorage.getItem('auth_token'),
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            };
-        }
+        let captureTone = null;
+        let flashEl = null;
 
         function getHistory() {
             try {
@@ -233,23 +259,39 @@
             stopCameraBtn.classList.toggle('d-none', !active);
         }
 
-        async function startPreview() {
+        function ensureFlash() {
+            if (flashEl) {
+                return flashEl;
+            }
+            flashEl = document.createElement('div');
+            flashEl.className = 'scanner-flash';
+            scannerReader.appendChild(flashEl);
+            return flashEl;
+        }
+
+        function playBeep() {
             try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-                cameraPreview.srcObject = mediaStream;
-                await cameraPreview.play();
+                captureTone = captureTone || new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = captureTone.createOscillator();
+                const gain = captureTone.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 880;
+                gain.gain.value = 0.06;
+                oscillator.connect(gain);
+                gain.connect(captureTone.destination);
+                oscillator.start();
+                oscillator.stop(captureTone.currentTime + 0.12);
             } catch (error) {
-                setStatus('Camera permission was denied or not available.', 'danger');
+                // Silent if audio is unavailable or blocked.
             }
         }
 
-        function stopPreview() {
-            if (mediaStream) {
-                mediaStream.getTracks().forEach(track => track.stop());
-                mediaStream = null;
-            }
-
-            cameraPreview.srcObject = null;
+        function pulseCaptureCue() {
+            const el = ensureFlash();
+            el.classList.remove('is-visible');
+            void el.offsetWidth;
+            el.classList.add('is-visible');
+            playBeep();
         }
 
         function setResultState(success) {
@@ -259,7 +301,7 @@
             invalidAlert.classList.toggle('d-none', success);
         }
 
-                function renderResult(data) {
+        function renderResult(data) {
             const product = data.product || {};
             const rows = [
                 ['Unique Code', data.unique_code],
@@ -286,14 +328,14 @@
             setResultState(true);
         }
 
-                function renderNotFound(uniqueCode) {
+        function renderNotFound(uniqueCode) {
             currentResultText = `Unique Code: ${uniqueCode}\nStatus: Invalid`;
             resultRows.innerHTML = '';
             setResultState(false);
             pushHistory(uniqueCode, currentResultText, 'Invalid');
         }
 
-                async function lookupBarcode(code) {
+        async function lookupBarcode(code, fromScanner = false) {
             const uniqueCode = (code || '').trim();
             if (!uniqueCode) {
                 setStatus('Enter a barcode value first.', 'warning');
@@ -311,13 +353,18 @@
 
                 if (!payload.data || !payload.data.valid) {
                     renderNotFound(uniqueCode);
-                    setStatus(payload.message || 'Invalid barcode — no product found.', 'danger');
+                    setStatus(payload.message || 'Invalid barcode - no product found.', 'danger');
                     return;
                 }
 
+                pulseCaptureCue();
                 setStatus('Barcode found.', 'success');
                 renderResult(payload.data);
                 pushHistory(uniqueCode, currentResultText, 'Found');
+
+                if (fromScanner) {
+                    await new Promise(resolve => setTimeout(resolve, 250));
+                }
             } catch (error) {
                 setStatus('Something went wrong while looking up the barcode.', 'danger');
             }
@@ -333,14 +380,27 @@
             }
 
             try {
-                await startPreview();
                 scannerRunning = true;
                 setCameraActive(true);
+                setStatus('Point the camera at a barcode to scan continuously.', 'secondary');
+
                 await html5Qrcode.start(
                     { facingMode: 'environment' },
                     {
-                        fps: 10,
-                        qrbox: { width: 250, height: 250 },
+                        fps: 12,
+                        qrbox: { width: 280, height: 280 },
+                        aspectRatio: 1.333,
+                        disableFlip: true,
+                        rememberLastUsedCamera: true,
+                        experimentalFeatures: {
+                            useBarCodeDetectorIfSupported: true,
+                        },
+                        videoConstraints: {
+                            facingMode: { ideal: 'environment' },
+                            focusMode: 'continuous',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                        },
                         formatsToSupport: [
                             Html5QrcodeSupportedFormats.CODE_128,
                             Html5QrcodeSupportedFormats.QR_CODE,
@@ -350,25 +410,26 @@
                     },
                     async (decodedText) => {
                         const uniqueCode = (decodedText || '').trim();
-                        if (!uniqueCode || scanInProgress) {
+                        if (!uniqueCode || scanInProgress || uniqueCode === lastDecodedText) {
                             return;
                         }
 
                         scanInProgress = true;
+                        lastDecodedText = uniqueCode;
                         manualBarcodeInput.value = uniqueCode;
 
                         try {
-                            await lookupBarcode(uniqueCode);
-                            await stopCamera(true);
+                            await lookupBarcode(uniqueCode, true);
                         } finally {
+                            window.setTimeout(() => { lastDecodedText = ''; }, 1200);
                             scanInProgress = false;
                         }
                     }
                 );
+
             } catch (error) {
                 scannerRunning = false;
                 setCameraActive(false);
-                stopPreview();
                 setStatus('Unable to start the scanner.', 'danger');
             }
         }
@@ -383,8 +444,8 @@
                 scannerRunning = false;
                 html5Qrcode.clear().catch(() => {});
             }
-            stopPreview();
             setCameraActive(false);
+            lastDecodedText = '';
             if (!silent) {
                 setStatus('Camera stopped.', 'secondary');
             }
@@ -404,7 +465,8 @@
             try {
                 const decodedText = (await html5Qrcode.scanFile(file, true)).trim();
                 manualBarcodeInput.value = decodedText;
-                await lookupBarcode(decodedText);
+                pulseCaptureCue();
+                await lookupBarcode(decodedText, true);
             } catch (error) {
                 setStatus('No barcode could be read from that image.', 'danger');
             }
@@ -467,8 +529,6 @@
     })();
 </script>
 @endpush
-
-
 
 
 
