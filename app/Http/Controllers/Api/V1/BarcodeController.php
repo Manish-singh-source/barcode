@@ -13,11 +13,72 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Picqer\Barcode\BarcodeGeneratorPNG;
 use Picqer\Barcode\BarcodeGeneratorSVG;
-use RuntimeException;
 
 class BarcodeController extends Controller
 {
     use ApiResponseTrait;
+
+    public function index(Request $request): JsonResponse
+    {
+        $draw = (int) $request->input('draw', 1);
+        $start = max((int) $request->input('start', 0), 0);
+        $length = max((int) $request->input('length', 10), 1);
+        $search = trim((string) data_get($request->input('search', []), 'value', ''));
+        $orderColumnIndex = (int) data_get($request->input('order', []), '0.column', 0);
+        $orderDirection = strtolower((string) data_get($request->input('order', []), '0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        $columnMap = [
+            0 => 'id',
+            1 => 'unique_code',
+            2 => 'barcode_format',
+            3 => 'custom_label',
+            4 => 'product_id',
+            5 => 'created_at',
+        ];
+
+        $query = BarcodeGeneration::query()->with(['user', 'product'])->whereNull('deleted_at');
+        $recordsTotal = (clone $query)->count();
+
+        if ($search !== '') {
+            $query->where(function ($subQuery) use ($search): void {
+                $subQuery->where('unique_code', 'like', '%' . $this->escapeLike($search) . '%')
+                    ->orWhere('custom_label', 'like', '%' . $this->escapeLike($search) . '%')
+                    ->orWhereHas('product', function ($productQuery) use ($search): void {
+                        $productQuery->where('name', 'like', '%' . $this->escapeLike($search) . '%');
+                    });
+            });
+        }
+
+        $recordsFiltered = (clone $query)->count();
+        $orderColumn = $columnMap[$orderColumnIndex] ?? 'created_at';
+
+        $rows = $query->orderBy($orderColumn, $orderDirection)
+            ->skip($start)
+            ->take($length)
+            ->get();
+
+        $data = $rows->values()->map(static function (BarcodeGeneration $barcode, int $index) use ($start): array {
+            return [
+                'id' => $barcode->id,
+                'row_number' => $start + $index + 1,
+                'unique_code' => $barcode->unique_code,
+                'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
+                'custom_label' => $barcode->custom_label,
+                'product_id' => $barcode->product_id,
+                'product_name' => $barcode->product?->name,
+                'user_name' => $barcode->user?->name,
+                'barcode_image_url' => $barcode->barcode_image_path ? Storage::disk('public')->url($barcode->barcode_image_path) : null,
+                'created_at' => $barcode->created_at?->format('Y-m-d H:i'),
+            ];
+        });
+
+        return response()->json([
+            'draw' => $draw,
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data,
+        ]);
+    }
 
     public function checkDuplicate(Request $request): JsonResponse
     {
@@ -79,6 +140,42 @@ class BarcodeController extends Controller
             'custom_label' => $barcode->custom_label,
             'created_at' => $barcode->created_at?->toISOString(),
         ], 'Barcode generated successfully.', 201);
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'custom_label' => ['nullable', 'string', 'max:255'],
+            'product_id' => ['nullable', 'exists:products,id'],
+        ]);
+
+        $barcode = BarcodeGeneration::query()->whereKey($id)->firstOrFail();
+        $barcode->fill([
+            'custom_label' => $validated['custom_label'] ?? null,
+            'product_id' => $validated['product_id'] ?? null,
+        ])->save();
+
+        $barcode->load('product');
+
+        return $this->successResponse([
+            'id' => $barcode->id,
+            'unique_code' => $barcode->unique_code,
+            'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
+            'custom_label' => $barcode->custom_label,
+            'product_id' => $barcode->product_id,
+            'product_name' => $barcode->product?->name,
+            'user_name' => $barcode->user?->name,
+            'barcode_image_url' => $barcode->barcode_image_path ? Storage::disk('public')->url($barcode->barcode_image_path) : null,
+            'created_at' => $barcode->created_at?->format('Y-m-d H:i'),
+        ], 'Barcode updated successfully.');
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $barcode = BarcodeGeneration::query()->whereKey($id)->firstOrFail();
+        $barcode->delete();
+
+        return $this->successResponse(null, 'Barcode deleted.');
     }
 
     private function generateUniqueCode(): string

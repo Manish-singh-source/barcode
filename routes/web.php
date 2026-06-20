@@ -14,4 +14,4 @@ Route::get('/register', [AuthController::class, 'registerForm'])->name('register
 Route::get('/forgot-password', [AuthController::class, 'forgotForm'])->name('password.request');
 Route::get('/barcodes/generate', [BarcodeController::class, 'generateForm'])->name('barcodes.generate');
 Route::get('/barcodes', [BarcodeWebController::class, 'index'])->name('barcodes.index');
-Route::get('/barcodes/{id}', [BarcodeWebController::class, 'show'])->name('barcodes.show');
+Route::get('/barcodes/{id}', [BarcodeWebController::class, 'show'])->whereNumber('id')->name('barcodes.show');

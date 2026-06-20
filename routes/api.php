@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
 use App\Http\Controllers\Api\V1\BarcodeController as ApiBarcodeController;
-use App\Http\Controllers\Api\V1\BarcodeListController as ApiBarcodeListController;
 use App\Http\Controllers\Api\V1\DashboardController as ApiDashboardController;
 use App\Http\Controllers\Api\V1\ProductController as ApiProductController;
 use App\Models\BarcodeGeneration;
@@ -51,10 +50,9 @@ Route::prefix('auth')->group(function (): void {
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/products', [ApiProductController::class, 'index']);
-    Route::get('/barcodes', [ApiBarcodeListController::class, 'index']);
-    Route::get('/barcodes/{barcode}', [ApiBarcodeListController::class, 'show']);
-    Route::patch('/barcodes/{barcode}', [ApiBarcodeListController::class, 'update']);
-    Route::delete('/barcodes/{barcode}', [ApiBarcodeListController::class, 'destroy']);
+    Route::get('/barcodes', [ApiBarcodeController::class, 'index']);
+    Route::put('/barcodes/{id}', [ApiBarcodeController::class, 'update'])->whereNumber('id');
+    Route::delete('/barcodes/{id}', [ApiBarcodeController::class, 'destroy'])->whereNumber('id');
     Route::get('/barcodes/check-duplicate', [ApiBarcodeController::class, 'checkDuplicate']);
     Route::post('/barcodes/generate', [ApiBarcodeController::class, 'generate']);
 

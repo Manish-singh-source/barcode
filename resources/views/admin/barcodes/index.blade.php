@@ -39,6 +39,15 @@
     </div>
 </div>
 
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+    <div id="successToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="successToastBody">Saved successfully.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="editBarcodeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4">
@@ -48,6 +57,7 @@
             </div>
             <div class="modal-body vstack gap-3">
                 <input type="hidden" id="editBarcodeId">
+                <div id="editError" class="alert alert-danger d-none mb-0" role="alert"></div>
                 <div>
                     <label for="editCustomLabel" class="form-label fw-semibold">Custom Label</label>
                     <input type="text" id="editCustomLabel" class="form-control" placeholder="Update label">
@@ -121,9 +131,13 @@
         const deleteModalEl = document.getElementById('deleteBarcodeModal');
         const editModal = new bootstrap.Modal(editModalEl);
         const deleteModal = new bootstrap.Modal(deleteModalEl);
+        const successToastEl = document.getElementById('successToast');
+        const successToastBody = document.getElementById('successToastBody');
+        const successToast = new bootstrap.Toast(successToastEl, { delay: 2200 });
         const editBarcodeId = document.getElementById('editBarcodeId');
         const editCustomLabel = document.getElementById('editCustomLabel');
         const editProductId = document.getElementById('editProductId');
+        const editError = document.getElementById('editError');
         const deleteBarcodeId = document.getElementById('deleteBarcodeId');
         const saveEditBtn = document.getElementById('saveEditBtn');
         const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
@@ -132,9 +146,33 @@
         let productsCache = [];
         let table = null;
 
+        function authHeaders() {
+            return {
+                Authorization: 'Bearer ' + localStorage.getItem('auth_token'),
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            };
+        }
+
         function setLoading(isLoading) {
             tableLoadingOverlay.classList.toggle('d-none', !isLoading);
             tableLoadingOverlay.classList.toggle('d-flex', isLoading);
+        }
+
+        function showToast(message) {
+            successToastBody.textContent = message;
+            successToast.show();
+        }
+
+        function showEditError(message) {
+            if (!message) {
+                editError.classList.add('d-none');
+                editError.textContent = '';
+                return;
+            }
+
+            editError.textContent = message;
+            editError.classList.remove('d-none');
         }
 
         function formatDate(value) {
@@ -178,28 +216,44 @@
         }
 
         async function loadProducts() {
-            try {
-                const response = await fetch('/api/v1/products?per_page=100', {
-                    headers: setAuthHeaders(),
-                });
-                const payload = await response.json();
+            const response = await fetch('/api/v1/products?per_page=100', {
+                headers: authHeaders(),
+            });
+            const payload = await response.json().catch(() => ({}));
 
-                if (!response.ok) {
-                    throw new Error(getApiErrorMessage(payload));
-                }
-
-                productsCache = payload.data?.data || [];
-                editProductId.innerHTML = getProductOptions();
-            } catch (error) {
-                productsCache = [];
-                editProductId.innerHTML = '<option value="">Unable to load products</option>';
+            if (!response.ok) {
+                throw new Error(getApiErrorMessage(payload, 'Unable to load products.'));
             }
+
+            productsCache = payload.data?.data || [];
+            editProductId.innerHTML = getProductOptions();
         }
 
         function findRow(id) {
             return barcodeRows.find(function (row) {
                 return String(row.id) === String(id);
             }) || null;
+        }
+
+        async function openEditModal(id) {
+            const row = findRow(id);
+            if (!row) {
+                return;
+            }
+
+            showEditError('');
+            editBarcodeId.value = row.id;
+            editCustomLabel.value = row.custom_label || '';
+            editProductId.innerHTML = '<option value="">Loading products...</option>';
+
+            try {
+                await loadProducts();
+            } catch (error) {
+                editProductId.innerHTML = '<option value="">Unable to load products</option>';
+            }
+
+            editProductId.value = row.product_id || '';
+            editModal.show();
         }
 
         async function saveBarcode() {
@@ -209,11 +263,12 @@
             }
 
             saveEditBtn.disabled = true;
+            showEditError('');
 
             try {
                 const response = await fetch('/api/v1/barcodes/' + id, {
-                    method: 'PATCH',
-                    headers: setAuthHeaders(),
+                    method: 'PUT',
+                    headers: authHeaders(),
                     body: JSON.stringify({
                         custom_label: editCustomLabel.value.trim() || null,
                         product_id: editProductId.value || null,
@@ -222,14 +277,15 @@
                 const payload = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
-                    alert(getApiErrorMessage(payload, 'Unable to update barcode.'));
+                    showEditError(getApiErrorMessage(payload, 'Unable to update barcode.'));
                     return;
                 }
 
                 editModal.hide();
                 table.ajax.reload(null, false);
+                showToast('Barcode updated successfully.');
             } catch (error) {
-                alert('Unable to update barcode right now.');
+                showEditError('Unable to update barcode right now.');
             } finally {
                 saveEditBtn.disabled = false;
             }
@@ -246,7 +302,7 @@
             try {
                 const response = await fetch('/api/v1/barcodes/' + id, {
                     method: 'DELETE',
-                    headers: setAuthHeaders(),
+                    headers: authHeaders(),
                 });
                 const payload = await response.json().catch(() => ({}));
 
@@ -257,6 +313,7 @@
 
                 deleteModal.hide();
                 table.ajax.reload(null, false);
+                showToast('Barcode deleted.');
             } catch (error) {
                 alert('Unable to delete barcode right now.');
             } finally {
@@ -271,16 +328,9 @@
             ajax: {
                 url: '/api/v1/barcodes',
                 type: 'GET',
-                headers: setAuthHeaders(),
-                dataSrc: function (json) {
-                    barcodeRows = json.data || [];
-                    return json.data || [];
-                },
                 beforeSend: function (xhr) {
-                    const headers = setAuthHeaders();
-                    Object.keys(headers).forEach(function (key) {
-                        xhr.setRequestHeader(key, headers[key]);
-                    });
+                    xhr.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('auth_token'));
+                    xhr.setRequestHeader('Accept', 'application/json');
                     setLoading(true);
                 },
                 complete: function () {
@@ -288,6 +338,10 @@
                 },
                 error: function () {
                     setLoading(false);
+                },
+                dataSrc: function (json) {
+                    barcodeRows = json.data || [];
+                    return json.data || [];
                 }
             },
             columns: [
@@ -324,29 +378,16 @@
         });
 
         $('#barcodesTable').on('click', '.js-edit-btn', function () {
-            const id = this.dataset.id;
-            const row = findRow(id);
-            if (!row) {
-                return;
-            }
-
-            editBarcodeId.value = row.id;
-            editCustomLabel.value = row.custom_label || '';
-            editProductId.innerHTML = getProductOptions();
-            editProductId.value = row.product_id || '';
-            editModal.show();
+            openEditModal(this.dataset.id);
         });
 
         $('#barcodesTable').on('click', '.js-delete-btn', function () {
-            const id = this.dataset.id;
-            deleteBarcodeId.value = id;
+            deleteBarcodeId.value = this.dataset.id;
             deleteModal.show();
         });
 
         saveEditBtn.addEventListener('click', saveBarcode);
         confirmDeleteBtn.addEventListener('click', deleteBarcode);
-
-        loadProducts();
     })();
 </script>
 @endpush
