@@ -157,6 +157,7 @@
         const historyList = document.getElementById('historyList');
         const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
+        let mediaStream = null;
         let html5Qrcode = null;
         let scannerRunning = false;
         let currentResultText = '';
@@ -257,15 +258,21 @@
             invalidAlert.classList.toggle('d-none', success);
         }
 
-        function renderResult(data) {
+                function renderResult(data) {
+            const product = data.product || {};
             const rows = [
                 ['Unique Code', data.unique_code],
-                ['Product Name', data.product_name],
-                ['Description', data.description || 'N/A'],
-                ['SKU', data.sku || 'N/A'],
-                ['Price', data.price ?? 'N/A'],
-                ['Brand', data.brand || 'N/A'],
-                ['Category', data.category || 'N/A'],
+                ['Barcode Format', data.barcode_format || 'N/A'],
+                ['Custom Label', data.custom_label || 'N/A'],
+                ['Product Name', product.name || 'N/A'],
+                ['Description', product.description || 'N/A'],
+                ['SKU', product.sku || 'N/A'],
+                ['Price', product.price ?? 'N/A'],
+                ['Brand', product.brand || 'N/A'],
+                ['Category', product.category || 'N/A'],
+                ['Unit', product.unit || 'N/A'],
+                ['Stock Quantity', product.stock_quantity ?? 'N/A'],
+                ['Scanned At', data.scanned_at ? new Date(data.scanned_at).toLocaleString() : new Date().toLocaleString()],
             ];
 
             currentResultText = rows.map(([label, value]) => `${label}: ${value}`).join('\n');
@@ -278,14 +285,14 @@
             setResultState(true);
         }
 
-        function renderNotFound(uniqueCode) {
+                function renderNotFound(uniqueCode) {
             currentResultText = `Unique Code: ${uniqueCode}\nStatus: Invalid`;
             resultRows.innerHTML = '';
             setResultState(false);
             pushHistory(uniqueCode, currentResultText, 'Invalid');
         }
 
-        async function lookupBarcode(code) {
+                async function lookupBarcode(code) {
             const uniqueCode = (code || '').trim();
             if (!uniqueCode) {
                 setStatus('Enter a barcode value first.', 'warning');
@@ -296,16 +303,14 @@
             setStatus('Looking up barcode...', 'secondary');
 
             try {
-                const response = await fetch('/api/v1/scan', {
-                    method: 'POST',
-                    headers: authHeaders(),
-                    body: JSON.stringify({ unique_code: uniqueCode }),
+                const response = await fetch(`/api/v1/scan/${encodeURIComponent(uniqueCode)}`, {
+                    headers: { 'Accept': 'application/json' },
                 });
                 const payload = await response.json().catch(() => ({}));
 
-                if (!response.ok) {
+                if (!payload.data || !payload.data.valid) {
                     renderNotFound(uniqueCode);
-                    setStatus('Invalid barcode — no product found.', 'danger');
+                    setStatus(payload.message || 'Invalid barcode — no product found.', 'danger');
                     return;
                 }
 
@@ -447,3 +452,4 @@
     })();
 </script>
 @endpush
+

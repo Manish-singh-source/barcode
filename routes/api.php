@@ -7,8 +7,6 @@ use App\Http\Controllers\Api\V1\ProductController as ApiProductController;
 use App\Http\Controllers\Api\V1\ScanController as ApiScanController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/scan/{unique_code}', [ApiScanController::class, 'show']);
-
 Route::prefix('auth')->group(function (): void {
     Route::post('/register', [ApiAuthController::class, 'register']);
     Route::post('/login', [ApiAuthController::class, 'login']);
@@ -21,8 +19,11 @@ Route::prefix('auth')->group(function (): void {
     });
 });
 
+Route::post('/scan', [ApiScanController::class, 'scan']);
+Route::middleware('auth:sanctum')->get('/scan/history', [ApiScanController::class, 'history']);
+Route::get('/scan/{unique_code}', [ApiScanController::class, 'scanByGet']);
+
 Route::middleware('auth:sanctum')->group(function (): void {
-    Route::post('/scan', [ApiScanController::class, 'lookup']);
     Route::get('/products', [ApiProductController::class, 'index']);
     Route::get('/barcodes', [ApiBarcodeController::class, 'index']);
     Route::get('/barcodes/{id}', [ApiBarcodeController::class, 'show'])->whereNumber('id');
