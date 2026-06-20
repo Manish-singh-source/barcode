@@ -183,11 +183,12 @@
         renderHistory();
     }
 
-    function pushHistory(uniqueCode, resultText) {
-        const items = getHistory().filter(item => item.unique_code !== uniqueCode || item.result_text !== resultText);
+    function pushHistory(uniqueCode, resultText, valid) {
+        const items = getHistory().filter(item => item.unique_code !== uniqueCode || item.result_text !== resultText || item.valid !== valid);
         items.unshift({
             unique_code: uniqueCode,
             result_text: resultText,
+            valid: valid,
             timestamp: new Date().toISOString()
         });
         setHistory(items);
@@ -210,6 +211,7 @@
                     <div>
                         <div class="fw-semibold">${item.unique_code}</div>
                         <div class="small text-secondary">${formatTimestamp(item.timestamp)}</div>
+                        <div class="small ${item.valid ? 'text-success' : 'text-danger'}">${item.valid ? 'Found' : 'Invalid'}</div>
                     </div>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-sm btn-outline-dark" data-action="copy" data-index="${index}">Copy</button>
@@ -235,14 +237,20 @@
     }
 
     function renderResult(data) {
+        const product = data.product || {};
         const rows = [
             ['Unique Code', data.unique_code],
-            ['Product Name', data.product_name],
-            ['Description', data.description || 'N/A'],
-            ['SKU', data.sku || 'N/A'],
-            ['Price', data.price ?? 'N/A'],
-            ['Brand', data.brand || 'N/A'],
-            ['Category', data.category || 'N/A'],
+            ['Barcode Format', data.barcode_format || 'N/A'],
+            ['Custom Label', data.custom_label || 'N/A'],
+            ['Product Name', product.name || 'N/A'],
+            ['Description', product.description || 'N/A'],
+            ['SKU', product.sku || 'N/A'],
+            ['Price', product.price ?? 'N/A'],
+            ['Brand', product.brand || 'N/A'],
+            ['Category', product.category || 'N/A'],
+            ['Unit', product.unit || 'N/A'],
+            ['Stock Quantity', product.stock_quantity ?? 'N/A'],
+            ['Scanned At', data.scanned_at ? new Date(data.scanned_at).toLocaleString() : new Date().toLocaleString()],
         ];
 
         lastResultText = rows.map(([label, value]) => `${label}: ${value}`).join('\n');
@@ -253,14 +261,12 @@
             </div>
         `).join('');
         resultWrap.classList.remove('d-none');
-        pushHistory(data.unique_code, lastResultText);
     }
 
-    function renderNotFound() {
-        resultWrap.classList.add('d-none');
+    function renderNotFound(uniqueCode) {
+        lastResultText = `Unique Code: ${uniqueCode}\nStatus: Invalid`;
+        resultWrap.classList.remove('d-none');
         resultContent.innerHTML = '';
-        lastResultText = '';
-        setStatus('Invalid barcode. No product found for this code.', 'danger');
     }
 
     async function lookupBarcode(uniqueCode) {
@@ -273,18 +279,25 @@
         setStatus('Looking up barcode...', 'secondary');
 
         try {
-            const response = await fetch(`/api/v1/scan/${encodeURIComponent(code)}`);
-            const payload = await response.json();
+            const response = await fetch(`/api/v1/scan/${encodeURIComponent(code)}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            const payload = await response.json().catch(() => ({}));
 
-            if (!response.ok) {
-                renderNotFound();
+            if (payload.data && payload.data.valid) {
+                setStatus('Barcode found.', 'success');
+                renderResult(payload.data);
+                pushHistory(code, lastResultText, true);
                 return;
             }
 
-            setStatus('Barcode found.', 'success');
-            renderResult(payload.data);
+            renderNotFound(code);
+            setStatus(payload.message || 'Invalid barcode. No product found.', 'danger');
+            pushHistory(code, lastResultText, false);
         } catch (error) {
+            renderNotFound(code);
             setStatus('Something went wrong while looking up the barcode.', 'danger');
+            pushHistory(code, lastResultText, false);
         }
     }
 
