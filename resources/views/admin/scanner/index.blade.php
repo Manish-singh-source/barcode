@@ -326,15 +326,7 @@
             const rows = [
                 ['Unique Code', data.unique_code],
                 ['Barcode Format', data.barcode_format || 'N/A'],
-                ['Custom Label', data.custom_label || 'N/A'],
                 ['Product Name', product.name || 'N/A'],
-                ['Description', product.description || 'N/A'],
-                ['SKU', product.sku || 'N/A'],
-                ['Price', product.price ?? 'N/A'],
-                ['Brand', product.brand || 'N/A'],
-                ['Category', product.category || 'N/A'],
-                ['Unit', product.unit || 'N/A'],
-                ['Stock Quantity', product.stock_quantity ?? 'N/A'],
                 ['Scanned At', data.scanned_at ? new Date(data.scanned_at).toLocaleString() : new Date().toLocaleString()],
             ];
 
@@ -556,4 +548,5 @@
     })();
 </script>
 @endpush
+
 
