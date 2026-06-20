@@ -272,6 +272,13 @@
             stopCameraBtn.classList.toggle('d-none', !active);
         }
 
+        function getQrBoxSize() {
+            const frameWidth = cameraFrame?.clientWidth || window.innerWidth || 320;
+            const frameHeight = cameraFrame?.clientHeight || window.innerHeight || 320;
+            const size = Math.floor(Math.min(frameWidth, frameHeight) * 0.68);
+            return Math.max(180, Math.min(size, 360));
+        }
+
         function ensureFlash() {
             if (flashEl) {
                 return flashEl;
@@ -388,6 +395,11 @@
                 return;
             }
 
+            if (typeof Html5Qrcode === 'undefined') {
+                setStatus('Scanner library failed to load. Please refresh the page and try again.', 'danger');
+                return;
+            }
+
             if (!html5Qrcode) {
                 html5Qrcode = new Html5Qrcode('scannerReader');
             }
@@ -397,11 +409,12 @@
                 setCameraActive(true);
                 setStatus('Point the camera at a barcode to scan continuously.', 'secondary');
 
+                const qrBoxSize = getQrBoxSize();
                 await html5Qrcode.start(
                     { facingMode: 'environment' },
                     {
                         fps: 12,
-                        qrbox: getQrBoxSize(),
+                        qrbox: qrBoxSize,
                         aspectRatio: 2.667,
                         disableFlip: true,
                         rememberLastUsedCamera: true,
@@ -443,7 +456,8 @@
             } catch (error) {
                 scannerRunning = false;
                 setCameraActive(false);
-                setStatus('Unable to start the scanner.', 'danger');
+                const reason = error?.message ? `: ${error.message}` : '';
+                setStatus(`Unable to start the scanner${reason}`, 'danger');
             }
         }
 
@@ -542,3 +556,4 @@
     })();
 </script>
 @endpush
+
