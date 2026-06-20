@@ -9,195 +9,126 @@ use App\Models\Product;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Picqer\Barcode\BarcodeGeneratorPNG;
 use Picqer\Barcode\BarcodeGeneratorSVG;
+use RuntimeException;
 
 class BarcodeController extends Controller
 {
     use ApiResponseTrait;
 
-    public function products(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-        ]);
-
-        $perPage = (int) ($validated['per_page'] ?? 100);
-
-        $products = Product::query()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->paginate($perPage);
-
-        return $this->successResponse([
-            'data' => $products->getCollection()->map(static function (Product $product): array {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                    'description' => $product->description,
-                    'category' => $product->category,
-                    'brand' => $product->brand,
-                ];
-            })->values(),
-            'pagination' => [
-                'current_page' => $products->currentPage(),
-                'last_page' => $products->lastPage(),
-                'per_page' => $products->perPage(),
-                'total' => $products->total(),
-            ],
-        ], 'Products loaded successfully.');
-    }
-
     public function checkDuplicate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'data' => ['required', 'string', 'max:2000'],
+            'data' => ['required', 'string', 'max:500'],
         ]);
 
-        $needle = trim(preg_replace('/\s+/u', ' ', $validated['data']) ?? '');
-        $normalized = mb_strtolower($needle);
-
-        $duplicate = BarcodeGeneration::query()
-            ->whereRaw('LOWER(barcode_data) = ?', [$normalized])
-            ->exists();
-
-        $similar = ! $duplicate && BarcodeGeneration::query()
-            ->whereRaw('LOWER(barcode_data) LIKE ?', ['%' . $normalized . '%'])
-            ->exists();
+        $data = $validated['data'];
+        $count = BarcodeGeneration::query()
+            ->where('barcode_data', 'like', '%' . $this->escapeLike($data) . '%')
+            ->count();
 
         return $this->successResponse([
-            'duplicate' => $duplicate,
-            'similar' => $similar,
-        ], $duplicate
-            ? 'Exact barcode data already exists.'
-            : ($similar ? 'Similar barcode data found.' : 'Barcode data appears unique.')
-        );
+            'exists' => $count > 0,
+            'count' => $count,
+        ], 'Duplicate check completed.');
     }
 
     public function generate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'barcode_data' => ['required', 'string', 'max:2000'],
+            'barcode_data' => ['required', 'string', 'max:500'],
+            'barcode_format' => ['required', 'in:code128,qrcode,code39,ean13'],
             'custom_label' => ['nullable', 'string', 'max:255'],
-            'barcode_format' => ['required', 'in:' . implode(',', array_map(static fn (BarcodeFormat $format): string => $format->value, BarcodeFormat::cases()))],
-            'product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'product_id' => ['nullable', 'exists:products,id'],
         ]);
 
-        $barcodeData = trim($validated['barcode_data']);
-        $customLabel = trim((string) ($validated['custom_label'] ?? '')) ?: null;
-        $format = BarcodeFormat::from($validated['barcode_format']);
-        $productId = $validated['product_id'] ?? null;
-        $product = $productId ? Product::query()->find($productId) : null;
-
-        if ($format === BarcodeFormat::Ean13 && ! preg_match('/^\d{12,13}$/', $barcodeData)) {
-            return $this->errorResponse('EAN-13 requires 12 or 13 digits.', 422);
+        $product = null;
+        if (! empty($validated['product_id'])) {
+            $product = Product::query()->find($validated['product_id']);
         }
 
         $uniqueCode = $this->generateUniqueCode();
+        $format = $validated['barcode_format'];
+        $barcodePayload = $this->resolveBarcodePayload($uniqueCode, $format, $validated['barcode_data']);
 
-        try {
-            [$pngDataUrl, $svgMarkup] = $this->makeBarcodeAssets($barcodeData, $format);
-        } catch (\RuntimeException $exception) {
-            return $this->errorResponse($exception->getMessage(), 422);
-        }
+        [$pngBinary, $svgMarkup] = $this->makeBarcodeAssets($barcodePayload, $format);
+
+        $barcodePath = 'barcodes/' . $uniqueCode . '.png';
+        Storage::disk('public')->put($barcodePath, $pngBinary);
 
         $barcode = BarcodeGeneration::query()->create([
             'user_id' => $request->user()?->id,
             'product_id' => $product?->id,
             'unique_code' => $uniqueCode,
             'barcode_format' => $format,
-            'barcode_data' => $barcodeData,
-            'barcode_image_path' => null,
-            'custom_label' => $customLabel,
+            'barcode_data' => $validated['barcode_data'],
+            'barcode_image_path' => $barcodePath,
+            'custom_label' => $validated['custom_label'] ?? null,
             'is_active' => true,
         ]);
 
         return $this->successResponse([
-            'barcode' => [
-                'id' => $barcode->id,
-                'unique_code' => $barcode->unique_code,
-                'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
-                'barcode_data' => $barcode->barcode_data,
-                'custom_label' => $barcode->custom_label,
-                'product' => $product ? [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'sku' => $product->sku,
-                ] : null,
-            ],
-            'barcode_image' => $pngDataUrl,
-            'svg' => $svgMarkup,
-            'human_readable_text' => $customLabel ?: $barcodeData,
-            'download' => [
-                'png_filename' => $uniqueCode . '.png',
-                'svg_filename' => $uniqueCode . '.svg',
-            ],
+            'unique_code' => $barcode->unique_code,
+            'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
+            'barcode_image_base64' => base64_encode($pngBinary),
+            'barcode_svg' => $svgMarkup,
+            'barcode_image_url' => Storage::disk('public')->url($barcodePath),
+            'custom_label' => $barcode->custom_label,
+            'created_at' => $barcode->created_at?->toISOString(),
         ], 'Barcode generated successfully.', 201);
     }
 
     private function generateUniqueCode(): string
     {
         do {
-            $code = Str::upper(Str::random(12));
+            $code = 'BC' . strtoupper(uniqid());
         } while (BarcodeGeneration::query()->where('unique_code', $code)->exists());
 
         return $code;
     }
 
-    /**
-     * @return array{0:string,1:string}
-     */
-    private function makeBarcodeAssets(string $barcodeData, BarcodeFormat $format): array
+    private function resolveBarcodePayload(string $uniqueCode, string $format, string $barcodeData): string
     {
-        if ($format === BarcodeFormat::Qrcode) {
-            return $this->makeQrAssets($barcodeData);
+        if ($format === 'ean13') {
+            $digits = preg_replace('/\D+/', '', $uniqueCode . $barcodeData) ?: '';
+            $payload = substr($digits . '0000000000000', 0, 12);
+
+            return $payload;
         }
 
-        $type = match ($format) {
-            BarcodeFormat::Code39 => BarcodeGeneratorPNG::TYPE_CODE_39,
-            BarcodeFormat::Ean13 => BarcodeGeneratorPNG::TYPE_EAN_13,
-            default => BarcodeGeneratorPNG::TYPE_CODE_128,
-        };
-
-        $pngGenerator = new BarcodeGeneratorPNG();
-        $svgGenerator = new BarcodeGeneratorSVG();
-
-        $png = $pngGenerator->getBarcode($barcodeData, $type, 3, 100);
-        $svg = $svgGenerator->getBarcode($barcodeData, $type, 3, 100);
-
-        return [
-            'data:image/png;base64,' . base64_encode($png),
-            $svg,
-        ];
+        return $uniqueCode;
     }
 
     /**
      * @return array{0:string,1:string}
      */
-    private function makeQrAssets(string $barcodeData): array
+    private function makeBarcodeAssets(string $payload, string $format): array
     {
-        $response = Http::timeout(15)->get('https://api.qrserver.com/v1/create-qr-code/', [
-            'size' => '400x400',
-            'data' => $barcodeData,
-            'margin' => 2,
-        ]);
+        $pngGenerator = new BarcodeGeneratorPNG();
+        $svgGenerator = new BarcodeGeneratorSVG();
+        $type = $this->mapFormatToPicqerType($format);
 
-        if (! $response->successful()) {
-            throw new \RuntimeException('QR code generation is temporarily unavailable.');
-        }
+        $png = $pngGenerator->getBarcode($payload, $type, 3, 100);
+        $svg = $svgGenerator->getBarcode($payload, $type, 3, 100);
 
-        $pngDataUrl = 'data:image/png;base64,' . base64_encode($response->body());
-        $escapedPng = htmlspecialchars($pngDataUrl, ENT_QUOTES, 'UTF-8');
-        $svgMarkup = <<<SVG
-<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400" role="img" aria-label="QR code">
-    <rect width="100%" height="100%" fill="#ffffff" />
-    <image href="{$escapedPng}" x="0" y="0" width="400" height="400" preserveAspectRatio="xMidYMid meet" />
-</svg>
-SVG;
+        return [$png, $svg];
+    }
 
-        return [$pngDataUrl, $svgMarkup];
+    private function mapFormatToPicqerType(string $format): string
+    {
+        return match ($format) {
+            'code39' => BarcodeGeneratorPNG::TYPE_CODE_39,
+            'ean13' => BarcodeGeneratorPNG::TYPE_EAN_13,
+            'qrcode' => BarcodeGeneratorPNG::TYPE_CODE_128,
+            default => BarcodeGeneratorPNG::TYPE_CODE_128,
+        };
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return addcslashes($value, '\\%_');
     }
 }

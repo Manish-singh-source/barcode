@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
 use App\Http\Controllers\Api\V1\BarcodeController as ApiBarcodeController;
 use App\Http\Controllers\Api\V1\DashboardController as ApiDashboardController;
+use App\Http\Controllers\Api\V1\ProductController as ApiProductController;
 use App\Models\BarcodeGeneration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
@@ -48,7 +49,7 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::middleware('auth:sanctum')->group(function (): void {
-    Route::get('/products', [ApiBarcodeController::class, 'products']);
+    Route::get('/products', [ApiProductController::class, 'index']);
     Route::get('/barcodes/check-duplicate', [ApiBarcodeController::class, 'checkDuplicate']);
     Route::post('/barcodes/generate', [ApiBarcodeController::class, 'generate']);
 

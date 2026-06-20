@@ -6,7 +6,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
             <div>
                 <h1 class="h3 fw-bold mb-1">Generate Barcode</h1>
-                <p class="text-secondary mb-0">Create a printable barcode or QR code and link it to a product when needed.</p>
+                <p class="text-secondary mb-0">Create a printable barcode or QR code and optionally link it to a product.</p>
             </div>
             <a href="{{ url('/dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
         </div>
@@ -22,7 +22,7 @@
                     <div>
                         <label for="barcodeData" class="form-label fw-semibold">Barcode Content</label>
                         <textarea id="barcodeData" class="form-control form-control-lg" rows="4" required placeholder="Enter product name, SKU, description, or any text..."></textarea>
-                        <div class="d-flex align-items-center gap-2 mt-2 small" id="duplicateStatus"></div>
+                        <div id="duplicateStatus" class="small mt-2"></div>
                     </div>
 
                     <div>
@@ -144,10 +144,9 @@
         const btnLabel = generateBtn.querySelector('.btn-label');
 
         let duplicateTimer = null;
-        let currentPng = '';
+        let currentPngBase64 = '';
         let currentSvg = '';
         let currentUniqueCode = '';
-        let currentFileBase = 'barcode';
 
         function setError(message) {
             if (!message) {
@@ -160,20 +159,13 @@
             generateError.classList.remove('d-none');
         }
 
-        function setDuplicateState(type, message, icon) {
-            if (!message) {
-                duplicateStatus.className = 'd-flex align-items-center gap-2 mt-2 small';
-                duplicateStatus.innerHTML = '';
-                return;
-            }
-
-            duplicateStatus.className = 'd-flex align-items-center gap-2 mt-2 small ' + type;
-            duplicateStatus.innerHTML = '<span>' + icon + '</span><span>' + message + '</span>';
+        function setDuplicateState(type, message) {
+            duplicateStatus.className = 'small mt-2 ' + type;
+            duplicateStatus.innerHTML = message || '';
         }
 
         function setGenerating(isGenerating) {
             generateBtn.disabled = isGenerating;
-            generateBtn.classList.toggle('disabled', isGenerating);
             btnLabel.innerHTML = isGenerating
                 ? '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Generating...'
                 : 'Generate Barcode';
@@ -191,26 +183,23 @@
             downloadPng.classList.add('d-none');
             downloadSvg.classList.add('d-none');
             generateAnother.classList.add('d-none');
-            currentPng = '';
+            currentPngBase64 = '';
             currentSvg = '';
             currentUniqueCode = '';
-            currentFileBase = 'barcode';
         }
 
-        function showPreview(payload) {
-            const barcode = payload.barcode || {};
-            currentPng = payload.barcode_image || '';
-            currentSvg = payload.svg || '';
-            currentUniqueCode = barcode.unique_code || payload.unique_code || '';
-            currentFileBase = currentUniqueCode || 'barcode';
+        function showPreview(response) {
+            currentPngBase64 = response.barcode_image_base64 || '';
+            currentSvg = response.barcode_svg || '';
+            currentUniqueCode = response.unique_code || '';
 
             previewCard.classList.add('is-ready');
             previewSkeleton.classList.add('d-none');
             previewContent.classList.remove('d-none');
 
-            barcodePreview.src = currentPng;
+            barcodePreview.src = 'data:image/png;base64,' + currentPngBase64;
             barcodePreview.style.display = 'inline-block';
-            humanReadableText.textContent = payload.human_readable_text || barcode.barcode_data || '';
+            humanReadableText.textContent = response.custom_label || response.unique_code || '';
             uniqueCodeDisplay.textContent = 'Unique Code: ' + currentUniqueCode;
             uniqueCodeDisplay.classList.remove('d-none');
             downloadPng.classList.remove('d-none');
@@ -241,14 +230,6 @@
                 const items = payload.data?.data || [];
                 productId.innerHTML = '<option value="">No product selected</option>';
 
-                if (!items.length) {
-                    const option = document.createElement('option');
-                    option.value = '';
-                    option.textContent = 'No active products found';
-                    productId.appendChild(option);
-                    return;
-                }
-
                 items.forEach((item) => {
                     const option = document.createElement('option');
                     option.value = item.id;
@@ -263,34 +244,34 @@
         async function checkDuplicate() {
             const value = barcodeData.value.trim();
             if (!value) {
-                setDuplicateState('', '', '');
+                setDuplicateState('', '');
                 return;
             }
 
-            setDuplicateState('text-secondary', 'Checking for duplicates...', '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>');
+            setDuplicateState('text-secondary', '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Checking for duplicates...');
 
             try {
                 const response = await fetch('/api/v1/barcodes/check-duplicate?data=' + encodeURIComponent(value), {
                     headers: setAuthHeaders(),
                 });
-                const payload = await response.json();
+                const payload = await response.json().catch(() => ({}));
 
                 if (!response.ok) {
-                    setDuplicateState('text-warning', getApiErrorMessage(payload), '!');
+                    setDuplicateState('text-warning', '&#9888; Unable to validate duplicate status right now.');
                     return;
                 }
 
-                const duplicate = Boolean(payload.data?.duplicate);
-                const similar = Boolean(payload.data?.similar);
+                const exists = Boolean(payload.data?.exists);
+                const count = Number(payload.data?.count || 0);
 
-                if (duplicate || similar) {
-                    setDuplicateState('is-warning', 'Similar data exists, a new unique code will still be generated.', '!');
+                if (exists) {
+                    setDuplicateState('is-warning', '&#9888; Similar data exists, a new unique code will still be generated.');
                     return;
                 }
 
-                setDuplicateState('is-valid', 'Unique', 'OK');
+                setDuplicateState('is-valid', '&#10003; Unique');
             } catch (error) {
-                setDuplicateState('text-warning', 'Unable to validate duplicate status right now.', '!');
+                setDuplicateState('text-warning', '&#9888; Unable to validate duplicate status right now.');
             }
         }
 
@@ -300,21 +281,21 @@
         });
 
         downloadPng.addEventListener('click', function () {
-            if (!currentPng) {
+            if (!currentPngBase64 || !currentUniqueCode) {
                 return;
             }
 
-            triggerDownload(currentPng, currentFileBase + '.png');
+            triggerDownload('data:image/png;base64,' + currentPngBase64, currentUniqueCode + '.png');
         });
 
         downloadSvg.addEventListener('click', function () {
-            if (!currentSvg) {
+            if (!currentSvg || !currentUniqueCode) {
                 return;
             }
 
             const blob = new Blob([currentSvg], { type: 'image/svg+xml;charset=utf-8' });
             const url = URL.createObjectURL(blob);
-            triggerDownload(url, currentFileBase + '.svg');
+            triggerDownload(url, currentUniqueCode + '.svg');
             window.setTimeout(() => URL.revokeObjectURL(url), 1000);
         });
 
@@ -322,7 +303,7 @@
             event.preventDefault();
             form.reset();
             setError('');
-            setDuplicateState('', '', '');
+            setDuplicateState('', '');
             resetPreview();
             barcodeData.focus();
         });
@@ -345,8 +326,8 @@
                     headers: setAuthHeaders(),
                     body: JSON.stringify({
                         barcode_data: barcodeValue,
-                        custom_label: customLabel.value.trim(),
                         barcode_format: barcodeFormat.value,
+                        custom_label: customLabel.value.trim() || null,
                         product_id: productId.value || null,
                     }),
                 });
