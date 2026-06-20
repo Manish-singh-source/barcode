@@ -11,31 +11,31 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint ) {
-            ->id();
-            ->string('name');
-            ->string('email')->unique();
-            ->enum('role', ['admin', 'user'])->default('user');
-            ->timestamp('email_verified_at')->nullable();
-            ->string('password');
-            ->rememberToken();
-            ->timestamps();
-            ->softDeletes();
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->enum('role', ['admin', 'user'])->default('user');
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->rememberToken();
+            $table->timestamps();
+            $table->softDeletes();
         });
 
-        Schema::create('password_reset_tokens', function (Blueprint ) {
-            ->string('email')->primary();
-            ->string('token');
-            ->timestamp('created_at')->nullable();
+        Schema::create('password_reset_tokens', function (Blueprint $table) {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
         });
 
-        Schema::create('sessions', function (Blueprint ) {
-            ->string('id')->primary();
-            ->foreignId('user_id')->nullable()->index();
-            ->string('ip_address', 45)->nullable();
-            ->text('user_agent')->nullable();
-            ->longText('payload');
-            ->integer('last_activity')->index();
+        Schema::create('sessions', function (Blueprint $table) {
+            $table->string('id')->primary();
+            $table->foreignId('user_id')->nullable()->index();
+            $table->string('ip_address', 45)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->longText('payload');
+            $table->integer('last_activity')->index();
         });
     }
 
