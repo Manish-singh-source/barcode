@@ -38,31 +38,17 @@ class ScanController extends Controller
         $perPage = (int) ($validated['per_page'] ?? 15);
 
         $logs = ScanLog::query()
-            ->with(['barcodeGeneration.product'])
             ->where('scanned_by', Auth::id())
             ->latest('created_at')
             ->paginate($perPage);
 
         return $this->successResponse([
             'data' => $logs->getCollection()->map(static function (ScanLog $log): array {
-                $product = $log->barcodeGeneration?->product;
-
                 return [
                     'unique_code' => $log->unique_code,
                     'scan_result' => $log->scan_result instanceof ScanResult ? $log->scan_result->value : (string) $log->scan_result,
                     'created_at' => $log->created_at?->toISOString(),
                     'product_data_snapshot' => $log->product_data_snapshot,
-                    'product' => $product ? [
-                        'id' => $product->id,
-                        'name' => $product->name,
-                        'sku' => $product->sku,
-                        'description' => $product->description,
-                        'price' => $product->price,
-                        'brand' => $product->brand,
-                        'category' => $product->category,
-                        'unit' => $product->unit,
-                        'stock_quantity' => $product->stock_quantity,
-                    ] : null,
                 ];
             })->values(),
             'pagination' => [
@@ -77,45 +63,23 @@ class ScanController extends Controller
     private function scanByCode(string $uniqueCode, Request $request): JsonResponse
     {
         $barcode = BarcodeGeneration::query()
-            ->with('product')
             ->where('unique_code', $uniqueCode)
             ->first();
 
         if (! $barcode) {
-            $this->logScan($request, [
-                'barcode_generation_id' => null,
-                'unique_code' => $uniqueCode,
-                'scan_result' => ScanResult::Invalid,
-                'product_data_snapshot' => null,
-            ]);
+            $this->logScan($request, $uniqueCode, null, ScanResult::Invalid, null);
 
             return $this->errorResponse('Invalid barcode. No product found.', 404);
         }
 
-        $product = $barcode->product;
-
         $snapshot = [
             'unique_code' => $barcode->unique_code,
-            'barcode_format' => $barcode->barcode_format instanceof \BackedEnum ? $barcode->barcode_format->value : (string) $barcode->barcode_format,
+            'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
             'custom_label' => $barcode->custom_label,
-            'product' => $product ? [
-                'name' => $product->name,
-                'sku' => $product->sku,
-                'price' => $product->price,
-                'brand' => $product->brand,
-                'category' => $product->category,
-                'description' => $product->description,
-                'unit' => $product->unit,
-                'stock_quantity' => $product->stock_quantity,
-            ] : null,
+            'product' => $barcode->resolvedProductSnapshot(),
         ];
 
-        $this->logScan($request, [
-            'barcode_generation_id' => $barcode->id,
-            'unique_code' => $barcode->unique_code,
-            'scan_result' => ScanResult::Success,
-            'product_data_snapshot' => $snapshot,
-        ]);
+        $this->logScan($request, $barcode->unique_code, $barcode->id, ScanResult::Success, $snapshot);
 
         return $this->successResponse([
             'valid' => true,
@@ -123,30 +87,21 @@ class ScanController extends Controller
             'barcode_format' => $snapshot['barcode_format'],
             'custom_label' => $barcode->custom_label,
             'barcode_image_url' => $barcode->barcode_image_url,
-            'product' => $product ? [
-                'id' => $product->id,
-                'name' => $product->name,
-                'sku' => $product->sku,
-                'description' => $product->description,
-                'price' => $product->price,
-                'brand' => $product->brand,
-                'category' => $product->category,
-                'unit' => $product->unit,
-                'stock_quantity' => $product->stock_quantity,
-            ] : null,
+            'product_name' => $snapshot['product']['name'] ?? $barcode->barcode_data,
+            'product' => $snapshot['product'],
             'scanned_at' => now()->toISOString(),
         ], 'Barcode scanned successfully.');
     }
 
-    private function logScan(Request $request, array $data): void
+    private function logScan(Request $request, string $uniqueCode, ?int $barcodeGenerationId, ScanResult $result, ?array $snapshot): void
     {
         ScanLog::create([
             'scanned_by' => Auth::id(),
-            'barcode_generation_id' => $data['barcode_generation_id'],
-            'unique_code' => $data['unique_code'],
-            'raw_scan_data' => $request->input('unique_code', $data['unique_code']),
-            'scan_result' => $data['scan_result']->value,
-            'product_data_snapshot' => $data['product_data_snapshot'],
+            'barcode_generation_id' => $barcodeGenerationId,
+            'unique_code' => $uniqueCode,
+            'raw_scan_data' => $request->input('unique_code', $uniqueCode),
+            'scan_result' => $result->value,
+            'product_data_snapshot' => $snapshot,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);

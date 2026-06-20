@@ -6,7 +6,7 @@
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-2">
             <div>
                 <h1 class="h3 fw-bold mb-1">Generate Barcode</h1>
-                <p class="text-secondary mb-0">Create a printable barcode or QR code and optionally link it to a product.</p>
+                <p class="text-secondary mb-0">Create a printable barcode or QR code from raw barcode data.</p>
             </div>
             <a href="{{ url('/dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
         </div>
@@ -37,13 +37,6 @@
                             <option value="qrcode">QR Code</option>
                             <option value="code39">Code 39</option>
                             <option value="ean13">EAN-13</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="productId" class="form-label fw-semibold">Link to Product (Optional)</label>
-                        <select id="productId" class="form-select form-select-lg">
-                            <option value="">Loading products...</option>
                         </select>
                     </div>
 
@@ -128,7 +121,6 @@
         const barcodeData = document.getElementById('barcodeData');
         const customLabel = document.getElementById('customLabel');
         const barcodeFormat = document.getElementById('barcodeFormat');
-        const productId = document.getElementById('productId');
         const generateBtn = document.getElementById('generateBtn');
         const generateError = document.getElementById('generateError');
         const duplicateStatus = document.getElementById('duplicateStatus');
@@ -216,31 +208,6 @@
             link.remove();
         }
 
-        async function loadProducts() {
-            try {
-                const response = await fetch('/api/v1/products?per_page=100', {
-                    headers: setAuthHeaders(),
-                });
-                const payload = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(getApiErrorMessage(payload, 'Unable to load products.'));
-                }
-
-                const items = payload.data?.data || [];
-                productId.innerHTML = '<option value="">No product selected</option>';
-
-                items.forEach((item) => {
-                    const option = document.createElement('option');
-                    option.value = item.id;
-                    option.textContent = item.name + (item.sku ? ' (' + item.sku + ')' : '');
-                    productId.appendChild(option);
-                });
-            } catch (error) {
-                productId.innerHTML = '<option value="">Unable to load products</option>';
-            }
-        }
-
         async function checkDuplicate() {
             const value = barcodeData.value.trim();
             if (!value) {
@@ -262,7 +229,6 @@
                 }
 
                 const exists = Boolean(payload.data?.exists);
-                const count = Number(payload.data?.count || 0);
 
                 if (exists) {
                     setDuplicateState('is-warning', '&#9888; Similar data exists, a new unique code will still be generated.');
@@ -328,7 +294,6 @@
                         barcode_data: barcodeValue,
                         barcode_format: barcodeFormat.value,
                         custom_label: customLabel.value.trim() || null,
-                        product_id: productId.value || null,
                     }),
                 });
 
@@ -348,7 +313,6 @@
         });
 
         resetPreview();
-        loadProducts();
     })();
 </script>
 @endpush

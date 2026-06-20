@@ -1,5 +1,11 @@
 <script>
 (function () {
+    const protectedPaths = [
+        '/dashboard',
+        '/barcodes',
+        '/barcodes/generate',
+        '/scanner',
+    ];
     const currentPath = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
 
     async function validateAdminSession() {
@@ -22,7 +28,7 @@
         return user;
     }
 
-    if (currentPath === '/dashboard') {
+    if (protectedPaths.some((path) => currentPath === path || currentPath.startsWith(path + '/'))) {
         validateAdminSession();
     }
 })();

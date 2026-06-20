@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\BarcodeGeneration;
-use App\Models\Product;
 use App\Models\ScanLog;
 use App\Models\User;
 use App\Traits\ApiResponseTrait;
@@ -24,7 +23,7 @@ class DashboardController extends Controller
         return $this->successResponse([
             'total_barcodes' => BarcodeGeneration::query()->count(),
             'scans_today' => ScanLog::query()->whereDate('created_at', today())->count(),
-            'total_products' => Product::query()->count(),
+            'unique_barcode_data' => BarcodeGeneration::query()->distinct('barcode_data')->count('barcode_data'),
             'active_users' => User::query()->count(),
         ], 'Dashboard stats loaded.');
     }
@@ -36,26 +35,27 @@ class DashboardController extends Controller
         }
 
         $recent = BarcodeGeneration::query()
-            ->with(['user', 'product'])
+            ->with('user')
             ->latest()
             ->paginate(10);
 
         return $this->successResponse([
             'data' => $recent->getCollection()->map(function (BarcodeGeneration $barcode): array {
+                $snapshot = $barcode->resolvedProductSnapshot();
+
                 return [
                     'id' => $barcode->id,
                     'unique_code' => $barcode->unique_code,
                     'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
                     'custom_label' => $barcode->custom_label,
+                    'product_name' => $snapshot['name'] ?? $barcode->barcode_data,
+                    'barcode_data' => $barcode->barcode_data,
                     'created_at' => $barcode->created_at?->toDateTimeString(),
                     'user' => $barcode->user ? [
                         'id' => $barcode->user->id,
                         'name' => $barcode->user->name,
                     ] : null,
-                    'product' => $barcode->product ? [
-                        'id' => $barcode->product->id,
-                        'name' => $barcode->product->name,
-                    ] : null,
+                    'product' => $snapshot,
                 ];
             })->values(),
             'pagination' => [

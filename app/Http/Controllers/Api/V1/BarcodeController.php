@@ -2,16 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Enums\BarcodeFormat;
 use App\Http\Controllers\Controller;
 use App\Models\BarcodeGeneration;
-use App\Models\Product;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Picqer\Barcode\BarcodeGeneratorPNG;
 use Picqer\Barcode\BarcodeGeneratorSVG;
 
@@ -33,20 +30,19 @@ class BarcodeController extends Controller
             1 => 'unique_code',
             2 => 'barcode_format',
             3 => 'custom_label',
-            4 => 'product_id',
+            4 => 'barcode_data',
             5 => 'created_at',
         ];
 
-        $query = BarcodeGeneration::query()->with(['user', 'product'])->whereNull('deleted_at');
+        $query = BarcodeGeneration::query()->with('user')->whereNull('deleted_at');
         $recordsTotal = (clone $query)->count();
 
         if ($search !== '') {
             $query->where(function ($subQuery) use ($search): void {
-                $subQuery->where('unique_code', 'like', '%' . $this->escapeLike($search) . '%')
-                    ->orWhere('custom_label', 'like', '%' . $this->escapeLike($search) . '%')
-                    ->orWhereHas('product', function ($productQuery) use ($search): void {
-                        $productQuery->where('name', 'like', '%' . $this->escapeLike($search) . '%');
-                    });
+                $escaped = $this->escapeLike($search);
+                $subQuery->where('unique_code', 'like', '%' . $escaped . '%')
+                    ->orWhere('custom_label', 'like', '%' . $escaped . '%')
+                    ->orWhere('barcode_data', 'like', '%' . $escaped . '%');
             });
         }
 
@@ -59,14 +55,16 @@ class BarcodeController extends Controller
             ->get();
 
         $data = $rows->values()->map(static function (BarcodeGeneration $barcode, int $index) use ($start): array {
+            $snapshot = $barcode->resolvedProductSnapshot();
+
             return [
                 'id' => $barcode->id,
                 'row_number' => $start + $index + 1,
                 'unique_code' => $barcode->unique_code,
                 'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
                 'custom_label' => $barcode->custom_label,
-                'product_id' => $barcode->product_id,
-                'product_name' => $barcode->product?->name,
+                'barcode_data' => $barcode->barcode_data,
+                'product_name' => $snapshot['name'] ?? $barcode->barcode_data,
                 'user_name' => $barcode->user?->name,
                 'barcode_image_url' => $barcode->barcode_image_path ? Storage::disk('public')->url($barcode->barcode_image_path) : null,
                 'created_at' => $barcode->created_at?->format('Y-m-d H:i'),
@@ -84,10 +82,12 @@ class BarcodeController extends Controller
     public function show(int $id): JsonResponse
     {
         $barcode = BarcodeGeneration::query()
-            ->with(['user', 'product'])
+            ->with('user')
             ->withCount('scanLogs')
             ->withMax('scanLogs', 'created_at')
             ->findOrFail($id);
+
+        $snapshot = $barcode->resolvedProductSnapshot();
 
         return $this->successResponse([
             'id' => $barcode->id,
@@ -99,15 +99,7 @@ class BarcodeController extends Controller
             'barcode_image_path' => $barcode->barcode_image_path,
             'barcode_svg' => $this->makeSvgMarkup($barcode->unique_code, $barcode->barcode_format?->value ?? $barcode->barcode_format, $barcode->barcode_data),
             'is_active' => (bool) $barcode->is_active,
-            'product' => $barcode->product ? [
-                'id' => $barcode->product->id,
-                'name' => $barcode->product->name,
-                'sku' => $barcode->product->sku,
-                'description' => $barcode->product->description,
-                'price' => $barcode->product->price,
-                'brand' => $barcode->product->brand,
-                'category' => $barcode->product->category,
-            ] : null,
+            'product' => $snapshot,
             'user' => $barcode->user ? [
                 'id' => $barcode->user->id,
                 'name' => $barcode->user->name,
@@ -143,13 +135,7 @@ class BarcodeController extends Controller
             'barcode_data' => ['required', 'string', 'max:500'],
             'barcode_format' => ['required', 'in:code128,qrcode,code39,ean13'],
             'custom_label' => ['nullable', 'string', 'max:255'],
-            'product_id' => ['nullable', 'exists:products,id'],
         ]);
-
-        $product = null;
-        if (! empty($validated['product_id'])) {
-            $product = Product::query()->find($validated['product_id']);
-        }
 
         $uniqueCode = $this->generateUniqueCode();
         $format = $validated['barcode_format'];
@@ -162,7 +148,6 @@ class BarcodeController extends Controller
 
         $barcode = BarcodeGeneration::query()->create([
             'user_id' => $request->user()?->id,
-            'product_id' => $product?->id,
             'unique_code' => $uniqueCode,
             'barcode_format' => $format,
             'barcode_data' => $validated['barcode_data'],
@@ -186,24 +171,20 @@ class BarcodeController extends Controller
     {
         $validated = $request->validate([
             'custom_label' => ['nullable', 'string', 'max:255'],
-            'product_id' => ['nullable', 'exists:products,id'],
         ]);
 
         $barcode = BarcodeGeneration::query()->whereKey($id)->firstOrFail();
         $barcode->fill([
             'custom_label' => $validated['custom_label'] ?? null,
-            'product_id' => $validated['product_id'] ?? null,
         ])->save();
-
-        $barcode->load('product');
 
         return $this->successResponse([
             'id' => $barcode->id,
             'unique_code' => $barcode->unique_code,
             'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
             'custom_label' => $barcode->custom_label,
-            'product_id' => $barcode->product_id,
-            'product_name' => $barcode->product?->name,
+            'barcode_data' => $barcode->barcode_data,
+            'product_name' => $barcode->resolvedProductSnapshot()['name'] ?? $barcode->barcode_data,
             'user_name' => $barcode->user?->name,
             'barcode_image_url' => $barcode->barcode_image_path ? Storage::disk('public')->url($barcode->barcode_image_path) : null,
             'created_at' => $barcode->created_at?->format('Y-m-d H:i'),

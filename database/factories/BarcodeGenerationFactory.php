@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use App\Enums\BarcodeFormat;
 use App\Models\BarcodeGeneration;
-use App\Models\Product;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -19,7 +18,6 @@ class BarcodeGenerationFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'product_id' => Product::factory(),
             'unique_code' => fake()->unique()->bothify('BC-########'),
             'barcode_format' => BarcodeFormat::Code128,
             'barcode_data' => fake()->bothify('DATA-########'),

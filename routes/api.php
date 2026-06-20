@@ -3,7 +3,6 @@
 use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
 use App\Http\Controllers\Api\V1\BarcodeController as ApiBarcodeController;
 use App\Http\Controllers\Api\V1\DashboardController as ApiDashboardController;
-use App\Http\Controllers\Api\V1\ProductController as ApiProductController;
 use App\Http\Controllers\Api\V1\ScanController as ApiScanController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,7 +23,6 @@ Route::middleware('auth:sanctum')->get('/scan/history', [ApiScanController::clas
 Route::get('/scan/{unique_code}', [ApiScanController::class, 'scanByGet']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
-    Route::get('/products', [ApiProductController::class, 'index']);
     Route::get('/barcodes', [ApiBarcodeController::class, 'index']);
     Route::get('/barcodes/{id}', [ApiBarcodeController::class, 'show'])->whereNumber('id');
     Route::put('/barcodes/{id}', [ApiBarcodeController::class, 'update'])->whereNumber('id');
