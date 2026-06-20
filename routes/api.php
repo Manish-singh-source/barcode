@@ -1,13 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
 use App\Models\BarcodeGeneration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
 
 Route::get('/scan/{unique_code}', function (string $unique_code): JsonResponse {
     $barcode = BarcodeGeneration::query()
@@ -37,3 +34,14 @@ Route::get('/scan/{unique_code}', function (string $unique_code): JsonResponse {
     ]);
 });
 
+Route::prefix('auth')->group(function (): void {
+    Route::post('/register', [ApiAuthController::class, 'register']);
+    Route::post('/login', [ApiAuthController::class, 'login']);
+    Route::post('/forgot-password', [ApiAuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [ApiAuthController::class, 'resetPassword']);
+
+    Route::middleware('auth:sanctum')->group(function (): void {
+        Route::post('/logout', [ApiAuthController::class, 'logout']);
+        Route::get('/me', [ApiAuthController::class, 'me']);
+    });
+});

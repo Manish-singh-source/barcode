@@ -49,15 +49,51 @@
 
 @push('scripts')
 <script>
-    document.querySelectorAll('[data-toggle-password]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const targetId = button.getAttribute('data-toggle-password');
-            const input = document.getElementById(targetId);
-            const icon = button.querySelector('i');
-            const isPassword = input.type === 'password';
+    document.querySelectorAll('[data-toggle-password]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var targetId = button.getAttribute('data-toggle-password');
+            var input = document.getElementById(targetId);
+            var icon = button.querySelector('i');
+            var isPassword = input.type === 'password';
             input.type = isPassword ? 'text' : 'password';
             icon.className = isPassword ? 'bi bi-eye-slash' : 'bi bi-eye';
         });
+    });
+
+    document.getElementById('registerForm').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        var errorBox = document.getElementById('registerError');
+        errorBox.classList.add('d-none');
+        errorBox.textContent = '';
+
+        try {
+            var response = await fetch('/api/v1/auth/register', {
+                method: 'POST',
+                headers: setAuthHeaders(),
+                body: JSON.stringify({
+                    name: document.getElementById('name').value,
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value,
+                    password_confirmation: document.getElementById('password_confirmation').value,
+                }),
+            });
+
+            var payload = await response.json();
+
+            if (!response.ok) {
+                errorBox.textContent = getApiErrorMessage(payload);
+                errorBox.classList.remove('d-none');
+                return;
+            }
+
+            localStorage.setItem('auth_token', payload.data.token);
+            localStorage.setItem('auth_user', JSON.stringify(payload.data.user));
+            window.location.href = '/dashboard';
+        } catch (error) {
+            errorBox.textContent = 'Unable to register right now.';
+            errorBox.classList.remove('d-none');
+        }
     });
 </script>
 @endpush
