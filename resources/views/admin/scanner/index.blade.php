@@ -160,6 +160,7 @@
         let mediaStream = null;
         let html5Qrcode = null;
         let scannerRunning = false;
+        let scanInProgress = false;
         let currentResultText = '';
 
         function authHeaders() {
@@ -348,8 +349,20 @@
                         ],
                     },
                     async (decodedText) => {
-                        manualBarcodeInput.value = decodedText;
-                        await lookupBarcode(decodedText);
+                        const uniqueCode = (decodedText || '').trim();
+                        if (!uniqueCode || scanInProgress) {
+                            return;
+                        }
+
+                        scanInProgress = true;
+                        manualBarcodeInput.value = uniqueCode;
+
+                        try {
+                            await lookupBarcode(uniqueCode);
+                            await stopCamera(true);
+                        } finally {
+                            scanInProgress = false;
+                        }
                     }
                 );
             } catch (error) {
@@ -360,7 +373,7 @@
             }
         }
 
-        async function stopCamera() {
+        async function stopCamera(silent = false) {
             if (html5Qrcode && scannerRunning) {
                 try {
                     await html5Qrcode.stop();
@@ -372,7 +385,9 @@
             }
             stopPreview();
             setCameraActive(false);
-            setStatus('Camera stopped.', 'secondary');
+            if (!silent) {
+                setStatus('Camera stopped.', 'secondary');
+            }
         }
 
         async function scanFile() {
@@ -387,7 +402,7 @@
             }
 
             try {
-                const decodedText = await html5Qrcode.scanFile(file, true);
+                const decodedText = (await html5Qrcode.scanFile(file, true)).trim();
                 manualBarcodeInput.value = decodedText;
                 await lookupBarcode(decodedText);
             } catch (error) {
@@ -452,4 +467,8 @@
     })();
 </script>
 @endpush
+
+
+
+
 
