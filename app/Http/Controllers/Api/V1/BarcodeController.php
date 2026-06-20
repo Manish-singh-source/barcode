@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Traits\ApiResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Picqer\Barcode\BarcodeGeneratorPNG;
@@ -78,6 +79,45 @@ class BarcodeController extends Controller
             'recordsFiltered' => $recordsFiltered,
             'data' => $data,
         ]);
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        $barcode = BarcodeGeneration::query()
+            ->with(['user', 'product'])
+            ->withCount('scanLogs')
+            ->withMax('scanLogs', 'created_at')
+            ->findOrFail($id);
+
+        return $this->successResponse([
+            'id' => $barcode->id,
+            'unique_code' => $barcode->unique_code,
+            'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
+            'barcode_data' => $barcode->barcode_data,
+            'custom_label' => $barcode->custom_label,
+            'barcode_image_url' => $barcode->barcode_image_path ? Storage::disk('public')->url($barcode->barcode_image_path) : null,
+            'barcode_image_path' => $barcode->barcode_image_path,
+            'barcode_svg' => $this->makeSvgMarkup($barcode->unique_code, $barcode->barcode_format?->value ?? $barcode->barcode_format, $barcode->barcode_data),
+            'is_active' => (bool) $barcode->is_active,
+            'product' => $barcode->product ? [
+                'id' => $barcode->product->id,
+                'name' => $barcode->product->name,
+                'sku' => $barcode->product->sku,
+                'description' => $barcode->product->description,
+                'price' => $barcode->product->price,
+                'brand' => $barcode->product->brand,
+                'category' => $barcode->product->category,
+            ] : null,
+            'user' => $barcode->user ? [
+                'id' => $barcode->user->id,
+                'name' => $barcode->user->name,
+                'email' => $barcode->user->email,
+            ] : null,
+            'created_at' => $barcode->created_at?->toISOString(),
+            'updated_at' => $barcode->updated_at?->toISOString(),
+            'scan_count' => (int) ($barcode->scan_logs_count ?? 0),
+            'last_scanned_at' => $barcode->scan_logs_max_created_at ? Carbon::parse($barcode->scan_logs_max_created_at)->toISOString() : null,
+        ], 'Barcode loaded successfully.');
     }
 
     public function checkDuplicate(Request $request): JsonResponse
@@ -212,6 +252,14 @@ class BarcodeController extends Controller
         $svg = $svgGenerator->getBarcode($payload, $type, 3, 100);
 
         return [$png, $svg];
+    }
+
+    private function makeSvgMarkup(string $uniqueCode, ?string $format, string $barcodeData): string
+    {
+        $payload = $this->resolveBarcodePayload($uniqueCode, $format ?? 'code128', $barcodeData);
+        [, $svg] = $this->makeBarcodeAssets($payload, $format ?? 'code128');
+
+        return $svg;
     }
 
     private function mapFormatToPicqerType(string $format): string

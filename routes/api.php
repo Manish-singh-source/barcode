@@ -51,6 +51,7 @@ Route::prefix('auth')->group(function (): void {
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/products', [ApiProductController::class, 'index']);
     Route::get('/barcodes', [ApiBarcodeController::class, 'index']);
+    Route::get('/barcodes/{id}', [ApiBarcodeController::class, 'show'])->whereNumber('id');
     Route::put('/barcodes/{id}', [ApiBarcodeController::class, 'update'])->whereNumber('id');
     Route::delete('/barcodes/{id}', [ApiBarcodeController::class, 'destroy'])->whereNumber('id');
     Route::get('/barcodes/check-duplicate', [ApiBarcodeController::class, 'checkDuplicate']);
