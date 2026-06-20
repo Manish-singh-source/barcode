@@ -53,6 +53,21 @@ class BarcodeGeneration extends Model
         return $this->hasMany(ScanLog::class);
     }
 
+    public static function normalizeText(?string $value): string
+    {
+        return trim(str_replace("\u{FFFD}", '', (string) $value));
+    }
+
+    public function displayCustomLabel(): string
+    {
+        return self::normalizeText($this->custom_label);
+    }
+
+    public function displayBarcodeData(): string
+    {
+        return self::normalizeText($this->barcode_data);
+    }
+
     /**
      * Build a product-like snapshot from barcode_data so the app can work
      * without any linked product table.

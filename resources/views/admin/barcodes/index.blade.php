@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+ï»¿@extends('layouts.admin')
 
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -45,8 +45,8 @@
                                 <td>
                                     <span class="badge text-bg-{{ ['code128' => 'primary', 'qrcode' => 'success', 'code39' => 'warning', 'ean13' => 'info'][$format] ?? 'secondary' }}">{{ $format }}</span>
                                 </td>
-                                <td>{{ $barcode->custom_label ?: '—' }}</td>
-                                <td style="max-width: 320px; white-space: pre-wrap; word-break: break-word;">{{ $barcode->barcode_data }}</td>
+                                <td>{{ \App\Models\BarcodeGeneration::normalizeText($barcode->custom_label) ?: 'N/A' }}</td>
+                                <td style="max-width: 320px; white-space: pre-wrap; word-break: break-word;">{{ \App\Models\BarcodeGeneration::normalizeText($barcode->barcode_data) }}</td>
                                 <td>{{ optional($barcode->created_at)->format('Y-m-d H:i') }}</td>
                                 <td>
                                     <div class="d-flex flex-wrap gap-1">
@@ -56,10 +56,9 @@
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-primary"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editBarcodeModal"
+                                            data-action="edit"
                                             data-id="{{ $barcode->id }}"
-                                            data-label="{{ $barcode->custom_label ?? '' }}"
+                                            data-barcode-data="{{ e(\App\Models\BarcodeGeneration::normalizeText($barcode->barcode_data ?? '')) }}"
                                             title="Edit"
                                         >
                                             <i class="bi bi-pencil"></i>
@@ -67,8 +66,7 @@
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-danger"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deleteBarcodeModal"
+                                            data-action="delete"
                                             data-id="{{ $barcode->id }}"
                                             title="Delete"
                                         >
@@ -92,13 +90,13 @@
                 @csrf
                 @method('PUT')
                 <div class="modal-header">
-                    <h5 class="modal-title">Update Barcode</h5>
+                    <h5 class="modal-title">Update Barcode Data</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body vstack gap-3">
                     <div>
-                        <label for="editCustomLabel" class="form-label fw-semibold">Custom Label</label>
-                        <input type="text" name="custom_label" id="editCustomLabel" class="form-control" placeholder="Update label">
+                        <label for="editBarcodeData" class="form-label fw-semibold">Barcode Data</label>
+                        <textarea name="barcode_data" id="editBarcodeData" class="form-control" rows="4" placeholder="Update barcode data"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -138,6 +136,10 @@
     .font-monospace {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
     }
+
+    .modal.is-open {
+        display: block;
+    }
 </style>
 @endpush
 
@@ -148,27 +150,97 @@
         const deleteModalEl = document.getElementById('deleteBarcodeModal');
         const editBarcodeForm = document.getElementById('editBarcodeForm');
         const deleteBarcodeForm = document.getElementById('deleteBarcodeForm');
-        const editCustomLabel = document.getElementById('editCustomLabel');
+        const editBarcodeData = document.getElementById('editBarcodeData');
+        const body = document.body;
+        let activeBackdrop = null;
 
-        editModalEl.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const id = button?.getAttribute('data-id');
-            const label = button?.getAttribute('data-label') || '';
-
-            if (id) {
-                editBarcodeForm.action = '{{ url('/barcodes') }}/' + id;
+        function openModal(modalEl) {
+            if (!modalEl) {
+                return;
             }
 
-            editCustomLabel.value = label;
+            modalEl.classList.add('show', 'is-open');
+            modalEl.setAttribute('aria-modal', 'true');
+            modalEl.removeAttribute('aria-hidden');
+
+            if (!activeBackdrop) {
+                activeBackdrop = document.createElement('div');
+                activeBackdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(activeBackdrop);
+            }
+
+            body.classList.add('modal-open');
+            body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalEl) {
+            if (!modalEl) {
+                return;
+            }
+
+            modalEl.classList.remove('show', 'is-open');
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.removeAttribute('aria-modal');
+
+            if (activeBackdrop) {
+                activeBackdrop.remove();
+                activeBackdrop = null;
+            }
+
+            body.classList.remove('modal-open');
+            body.style.overflow = '';
+        }
+
+        function wireDismissButtons(modalEl) {
+            modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    closeModal(modalEl);
+                });
+            });
+        }
+
+        wireDismissButtons(editModalEl);
+        wireDismissButtons(deleteModalEl);
+
+        document.querySelectorAll('[data-action="edit"]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const id = button.getAttribute('data-id');
+                const barcodeData = button.getAttribute('data-barcode-data') || '';
+
+                if (id) {
+                    editBarcodeForm.action = '{{ url('/barcodes') }}/' + id;
+                }
+
+                editBarcodeData.value = barcodeData;
+                openModal(editModalEl);
+            });
         });
 
-        deleteModalEl.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const id = button?.getAttribute('data-id');
+        document.querySelectorAll('[data-action="delete"]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const id = button.getAttribute('data-id');
 
-            if (id) {
-                deleteBarcodeForm.action = '{{ url('/barcodes') }}/' + id;
+                if (id) {
+                    deleteBarcodeForm.action = '{{ url('/barcodes') }}/' + id;
+                }
+
+                openModal(deleteModalEl);
+            });
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeModal(editModalEl);
+                closeModal(deleteModalEl);
             }
+        });
+
+        [editModalEl, deleteModalEl].forEach(function (modalEl) {
+            modalEl.addEventListener('click', function (event) {
+                if (event.target === modalEl) {
+                    closeModal(modalEl);
+                }
+            });
         });
     })();
 </script>

@@ -16,7 +16,7 @@
                     <div id="scannerReader" class="scanner-reader"></div>
                 </div>
 
-                <div class="d-flex flex-wrap gap-2 mb-4">
+                <div class="d-grid gap-2 d-sm-flex mb-4 scanner-actions">
                     <button type="button" id="startCameraBtn" class="btn btn-success">Start Camera</button>
                     <button type="button" id="stopCameraBtn" class="btn btn-secondary d-none">Stop Camera</button>
                 </div>
@@ -111,6 +111,19 @@
         width: 100% !important;
         height: 260px !important;
         object-fit: cover;
+    }
+
+    @media (max-width: 575.98px) {
+        .scanner-reader,
+        .scanner-reader video,
+        .scanner-reader canvas {
+            min-height: 220px;
+            height: 220px !important;
+        }
+
+        .scanner-actions .btn {
+            width: 100%;
+        }
     }
 
     .scanner-flash {
@@ -388,7 +401,7 @@
                     { facingMode: 'environment' },
                     {
                         fps: 12,
-                        qrbox: { width: 320, height: 120 },
+                        qrbox: getQrBoxSize(),
                         aspectRatio: 2.667,
                         disableFlip: true,
                         rememberLastUsedCamera: true,
@@ -529,7 +542,3 @@
     })();
 </script>
 @endpush
-
-
-
-

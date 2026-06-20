@@ -144,6 +144,10 @@
 
 @push('scripts')
 <script>
+    function sanitizeText(value) {
+        return (value ?? '').toString().replace(/\uFFFD/g, '').trim();
+    }
+
     function formatDateTime(value) {
         if (! value) {
             return 'N/A';
@@ -210,7 +214,7 @@
                     <td>${index + 1}</td>
                     <td class='fw-semibold'>${item.unique_code || '--'}</td>
                     <td><span class='badge text-bg-light border'>${item.barcode_format || 'N/A'}</span></td>
-                    <td>${item.custom_label || '—'}</td>
+                    <td>${sanitizeText(item.custom_label) || 'N/A'}</td>
                     <td>${item.created_at ? formatDateTime(item.created_at) : 'N/A'}</td>
                     <td><a href='/barcodes/${item.id}' class='btn btn-sm btn-outline-primary'>View</a></td>
                 `;

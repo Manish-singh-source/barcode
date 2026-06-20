@@ -8,7 +8,7 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="mainNavbar">
-            <div class="ms-auto d-flex gap-2 pt-3 pt-lg-0">
+            <div class="ms-auto d-grid gap-2 d-lg-flex pt-3 pt-lg-0">
                 <a href="{{ url('/login') }}" class="btn btn-outline-light">Login</a>
                 <a href="{{ url('/register') }}" class="btn btn-primary">Register</a>
             </div>
@@ -22,8 +22,8 @@
             <span class="badge rounded-pill text-bg-dark px-3 py-2 mb-3">Public barcode lookup</span>
             <h1 class="display-4 fw-bold lh-1 mb-3">Scan Any Barcode Instantly</h1>
             <p class="lead text-secondary mb-4">No login required. Point your camera and get product details in seconds.</p>
-            <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
-                <a href="#scanner-section" class="btn btn-lg btn-dark px-4">Start Scanning ↓</a>
+            <div class="d-grid gap-2 d-sm-flex justify-content-center justify-content-lg-start">
+                <a href="#scanner-section" class="btn btn-lg btn-dark px-4">Start Scanning</a>
                 <a href="{{ url('/login') }}" class="btn btn-lg btn-outline-primary px-4">Admin Login</a>
             </div>
         </div>
@@ -50,11 +50,11 @@
                 </div>
                 <div class="card-body p-4 p-md-5">
                     <div class="scanner-frame rounded-4 p-3 mb-4 bg-dark-subtle border border-2 border-secondary-subtle">
-                        <video id="camera-preview" class="w-100 rounded-3 bg-dark" autoplay muted playsinline style="min-height: 320px; object-fit: cover;"></video>
+                        <video id="camera-preview" class="w-100 rounded-3 bg-dark landing-camera-preview" autoplay muted playsinline></video>
                         <div id="scanner-reader" class="visually-hidden"></div>
                     </div>
 
-                    <div class="d-flex flex-wrap gap-2 mb-4">
+                    <div class="d-grid gap-2 d-sm-flex mb-4 scanner-actions">
                         <button type="button" id="start-camera-btn" class="btn btn-dark">Start Camera</button>
                         <button type="button" id="stop-camera-btn" class="btn btn-outline-danger">Stop Camera</button>
                     </div>
@@ -62,14 +62,14 @@
                     <div class="row g-4">
                         <div class="col-lg-6">
                             <label for="manual-code" class="form-label fw-semibold">Or enter barcode manually</label>
-                            <div class="input-group">
+                            <div class="input-group input-group-responsive">
                                 <input type="text" id="manual-code" class="form-control form-control-lg" placeholder="Enter unique code">
                                 <button type="button" id="lookup-btn" class="btn btn-primary">Lookup</button>
                             </div>
                         </div>
                         <div class="col-lg-6">
                             <label for="barcode-file" class="form-label fw-semibold">Or upload an image of the barcode</label>
-                            <div class="input-group">
+                            <div class="input-group input-group-responsive">
                                 <input type="file" id="barcode-file" class="form-control form-control-lg" accept="image/*">
                                 <button type="button" id="scan-file-btn" class="btn btn-outline-primary">Scan File</button>
                             </div>
@@ -83,7 +83,7 @@
                             <div class="card-body">
                                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="fs-4">📦</span>
+                                        <span class="fs-4">Result</span>
                                         <h3 class="h5 mb-0 fw-bold">Scan Result</h3>
                                     </div>
                                     <button type="button" id="copy-result-btn" class="btn btn-sm btn-outline-dark">Copy</button>
@@ -136,11 +136,54 @@
         min-height: 360px;
     }
 
+    .landing-camera-preview {
+        min-height: 320px;
+        object-fit: cover;
+    }
+
     #history-list .list-group-item {
         border-left: 0;
         border-right: 0;
         padding-left: 0;
         padding-right: 0;
+    }
+
+    @media (max-width: 575.98px) {
+        .display-4 {
+            font-size: 2.1rem;
+        }
+
+        .lead {
+            font-size: 1rem;
+        }
+
+        .hero-card {
+            padding: 1.25rem !important;
+        }
+
+        .scanner-frame {
+            min-height: 240px;
+        }
+
+        .landing-camera-preview {
+            min-height: 240px;
+        }
+
+        .scanner-actions .btn,
+        .input-group-responsive > .btn,
+        .input-group-responsive > .form-control,
+        .navbar .btn {
+            width: 100%;
+        }
+
+        .input-group-responsive {
+            flex-direction: column;
+        }
+
+        .input-group-responsive > .form-control,
+        .input-group-responsive > .btn {
+            border-radius: 0.75rem !important;
+        }
     }
 </style>
 @endpush
@@ -236,13 +279,17 @@
         }
     }
 
+    function sanitizeText(value) {
+        return (value ?? '').toString().replace(/\uFFFD/g, '').trim();
+    }
+
     function renderResult(data) {
         const product = data.product || {};
         const rows = [
             ['Unique Code', data.unique_code],
             ['Barcode Format', data.barcode_format || 'N/A'],
-            ['Custom Label', data.custom_label || 'N/A'],
-            ['Product Name', product.name || 'N/A'],
+            ['Custom Label', sanitizeText(data.custom_label) || 'N/A'],
+            ['Product Name', sanitizeText(product.name) || 'N/A'],
             ['Description', product.description || 'N/A'],
             ['SKU', product.sku || 'N/A'],
             ['Price', product.price ?? 'N/A'],

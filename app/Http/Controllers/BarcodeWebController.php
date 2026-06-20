@@ -36,27 +36,27 @@ class BarcodeWebController extends Controller
     public function update(Request $request, int $id)
     {
         $validated = $request->validate([
-            'custom_label' => ['nullable', 'string', 'max:255'],
+            'barcode_data' => ['nullable', 'string', 'max:5000'],
         ]);
 
         $barcode = BarcodeGeneration::query()->findOrFail($id);
         $barcode->fill([
-            'custom_label' => $validated['custom_label'] ?? null,
+            'barcode_data' => $validated['barcode_data'] ?? null,
         ])->save();
 
         if ($request->expectsJson()) {
             return response()->json([
-                'message' => 'Barcode updated successfully.',
+                'message' => 'Barcode data updated successfully.',
                 'data' => [
                     'id' => $barcode->id,
-                    'custom_label' => $barcode->custom_label,
+                    'barcode_data' => $barcode->barcode_data,
                 ],
             ]);
         }
 
         return redirect()
             ->route('barcodes.index')
-            ->with('success', 'Barcode updated successfully.');
+            ->with('success', 'Barcode data updated successfully.');
     }
 
     public function destroy(Request $request, int $id)

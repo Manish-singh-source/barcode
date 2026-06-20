@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang='en'>
 <head>
     <meta charset='utf-8'>
@@ -11,6 +11,7 @@
     <style>
         body.admin-shell {
             background: #f1f5f9;
+            overflow-x: hidden;
         }
 
         .admin-sidebar {
@@ -20,6 +21,7 @@
             background: #1e293b;
             color: #fff;
             z-index: 1030;
+            transition: transform 0.25s ease;
         }
 
         .admin-main {
@@ -57,13 +59,62 @@
             color: #fff;
             background: rgba(239, 68, 68, 0.18);
         }
+
+        .admin-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.56);
+            z-index: 1025;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+        }
+
+        body.admin-shell.sidebar-open {
+            overflow: hidden;
+        }
+
+        body.admin-shell.sidebar-open .admin-backdrop {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .admin-menu-toggle {
+            width: 2.75rem;
+            height: 2.75rem;
+        }
+
+        @media (max-width: 991.98px) {
+            .admin-sidebar {
+                width: min(84vw, 300px);
+                transform: translateX(-100%);
+                box-shadow: 0 1.25rem 2.5rem rgba(15, 23, 42, 0.28);
+            }
+
+            body.admin-shell.sidebar-open .admin-sidebar {
+                transform: translateX(0);
+            }
+
+            .admin-main {
+                margin-left: 0;
+            }
+
+            .admin-header .desktop-user-meta {
+                display: none !important;
+            }
+
+            .admin-content {
+                padding: 1rem !important;
+            }
+        }
     </style>
 </head>
 <body class='admin-shell'>
     @include('partials.auth-check')
     @include('partials.admin-check')
 
-    <aside class='admin-sidebar d-flex flex-column p-3 p-lg-4'>
+    <div id='adminBackdrop' class='admin-backdrop d-lg-none'></div>
+    <aside id='adminSidebar' class='admin-sidebar d-flex flex-column p-3 p-lg-4'>
         <div class='mb-4'>
             <a href='{{ url('/dashboard') }}' class='text-decoration-none text-white d-block'>
                 <div class='d-flex align-items-center gap-2'>
@@ -100,13 +151,18 @@
 
     <main class='admin-main'>
         <header class='admin-header bg-white shadow-sm'>
-            <div class='d-flex justify-content-between align-items-center px-4 px-lg-5 py-3'>
-                <div>
-                    <div class='text-secondary small'>Admin Dashboard</div>
-                    <div class='fw-semibold'>Welcome back, <span id='headerUserName'>Admin</span></div>
+            <div class='d-flex justify-content-between align-items-center gap-3 px-3 px-lg-5 py-3'>
+                <div class='d-flex align-items-center gap-3'>
+                    <button type='button' id='sidebarToggleBtn' class='btn btn-outline-secondary d-lg-none admin-menu-toggle' aria-label='Open navigation menu' aria-controls='adminSidebar' aria-expanded='false'>
+                        <i class='bi bi-list fs-4'></i>
+                    </button>
+                    <div>
+                        <div class='text-secondary small'>Admin Dashboard</div>
+                        <div class='fw-semibold'>Welcome back, <span id='headerUserName'>Admin</span></div>
+                    </div>
                 </div>
                 <div class='d-flex align-items-center gap-3'>
-                    <div class='text-end d-none d-md-block'>
+                    <div class='text-end desktop-user-meta d-none d-md-block'>
                         <div class='fw-semibold' id='headerUserRole'>Admin</div>
                         <div class='small text-secondary'>Logged in</div>
                     </div>
@@ -117,7 +173,7 @@
             </div>
         </header>
 
-        <div class='p-4 p-lg-5'>
+        <div class='admin-content p-3 p-lg-5'>
             @yield('content')
         </div>
     </main>
@@ -128,6 +184,10 @@
             var user = window.currentAuthUser || null;
             var headerUserName = document.getElementById('headerUserName');
             var headerUserRole = document.getElementById('headerUserRole');
+            var sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+            var adminBackdrop = document.getElementById('adminBackdrop');
+            var body = document.body;
+            var navLinks = document.querySelectorAll('.admin-sidebar a.nav-link');
 
             if (user) {
                 headerUserName.textContent = user.name || 'Admin';
@@ -149,8 +209,50 @@
                 window.location.replace('/login');
             }
 
+            function closeSidebar() {
+                body.classList.remove('sidebar-open');
+                if (sidebarToggleBtn) {
+                    sidebarToggleBtn.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            function openSidebar() {
+                body.classList.add('sidebar-open');
+                if (sidebarToggleBtn) {
+                    sidebarToggleBtn.setAttribute('aria-expanded', 'true');
+                }
+            }
+
             document.getElementById('headerLogoutBtn').addEventListener('click', logout);
             document.getElementById('sidebarLogoutBtn').addEventListener('click', logout);
+
+            if (sidebarToggleBtn) {
+                sidebarToggleBtn.addEventListener('click', function () {
+                    if (body.classList.contains('sidebar-open')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                });
+            }
+
+            if (adminBackdrop) {
+                adminBackdrop.addEventListener('click', closeSidebar);
+            }
+
+            navLinks.forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (window.innerWidth < 992) {
+                        closeSidebar();
+                    }
+                });
+            });
+
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 992) {
+                    closeSidebar();
+                }
+            });
         })();
     </script>
     @stack('scripts')

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang='en'>
 <head>
     <meta charset='utf-8'>
@@ -19,11 +19,25 @@
         .auth-card {
             background: #ffffff;
         }
+
+        @media (max-width: 575.98px) {
+            .auth-wrap {
+                max-width: 100%;
+            }
+
+            .auth-shell .display-6 {
+                font-size: 1.8rem;
+            }
+
+            .auth-card .card-body {
+                padding: 1.25rem !important;
+            }
+        }
     </style>
     @stack('styles')
 </head>
 <body class='auth-shell'>
-    <main class='container min-vh-100 d-flex align-items-center justify-content-center py-5'>
+    <main class='container min-vh-100 d-flex align-items-center justify-content-center py-4 py-md-5 px-3'>
         <div class='w-100 auth-wrap'>
             <div class='text-center text-white mb-4'>
                 <a href='{{ url('/') }}' class='text-decoration-none text-white'>
