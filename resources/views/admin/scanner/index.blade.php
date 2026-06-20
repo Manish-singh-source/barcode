@@ -99,7 +99,7 @@
     }
 
     .scanner-reader {
-        min-height: 320px;
+        min-height: 260px;
         border-radius: 1rem;
         overflow: hidden;
         background: #000;
@@ -109,7 +109,7 @@
     .scanner-reader video,
     .scanner-reader canvas {
         width: 100% !important;
-        height: 320px !important;
+        height: 260px !important;
         object-fit: cover;
     }
 
@@ -388,8 +388,8 @@
                     { facingMode: 'environment' },
                     {
                         fps: 12,
-                        qrbox: { width: 280, height: 280 },
-                        aspectRatio: 1.333,
+                        qrbox: { width: 320, height: 120 },
+                        aspectRatio: 2.667,
                         disableFlip: true,
                         rememberLastUsedCamera: true,
                         experimentalFeatures: {
@@ -529,6 +529,7 @@
     })();
 </script>
 @endpush
+
 
 
 
