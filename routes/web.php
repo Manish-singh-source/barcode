@@ -5,6 +5,7 @@ use App\Http\Controllers\BarcodeController;
 use App\Http\Controllers\BarcodeWebController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingController;
+use App\Http\Controllers\ScannerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
@@ -15,3 +16,4 @@ Route::get('/forgot-password', [AuthController::class, 'forgotForm'])->name('pas
 Route::get('/barcodes/generate', [BarcodeController::class, 'generateForm'])->name('barcodes.generate');
 Route::get('/barcodes', [BarcodeWebController::class, 'index'])->name('barcodes.index');
 Route::get('/barcodes/{id}', [BarcodeWebController::class, 'show'])->whereNumber('id')->name('barcodes.show');
+Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner.index');

@@ -4,37 +4,10 @@ use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
 use App\Http\Controllers\Api\V1\BarcodeController as ApiBarcodeController;
 use App\Http\Controllers\Api\V1\DashboardController as ApiDashboardController;
 use App\Http\Controllers\Api\V1\ProductController as ApiProductController;
-use App\Models\BarcodeGeneration;
-use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Api\V1\ScanController as ApiScanController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/scan/{unique_code}', function (string $unique_code): JsonResponse {
-    $barcode = BarcodeGeneration::query()
-        ->with('product')
-        ->where('unique_code', $unique_code)
-        ->first();
-
-    if (! $barcode || ! $barcode->product) {
-        return response()->json([
-            'message' => 'Invalid barcode. No product found for this code.',
-        ], 404);
-    }
-
-    $product = $barcode->product;
-
-    return response()->json([
-        'message' => 'Product found.',
-        'data' => [
-            'unique_code' => $barcode->unique_code,
-            'product_name' => $product->name,
-            'description' => $product->description,
-            'sku' => $product->sku,
-            'price' => $product->price,
-            'brand' => $product->brand,
-            'category' => $product->category,
-        ],
-    ]);
-});
+Route::get('/scan/{unique_code}', [ApiScanController::class, 'show']);
 
 Route::prefix('auth')->group(function (): void {
     Route::post('/register', [ApiAuthController::class, 'register']);
@@ -49,6 +22,7 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::middleware('auth:sanctum')->group(function (): void {
+    Route::post('/scan', [ApiScanController::class, 'lookup']);
     Route::get('/products', [ApiProductController::class, 'index']);
     Route::get('/barcodes', [ApiBarcodeController::class, 'index']);
     Route::get('/barcodes/{id}', [ApiBarcodeController::class, 'show'])->whereNumber('id');
