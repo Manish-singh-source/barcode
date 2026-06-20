@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
+use App\Http\Controllers\Api\V1\BarcodeController as ApiBarcodeController;
 use App\Http\Controllers\Api\V1\DashboardController as ApiDashboardController;
 use App\Models\BarcodeGeneration;
 use Illuminate\Http\JsonResponse;
@@ -46,7 +47,13 @@ Route::prefix('auth')->group(function (): void {
     });
 });
 
-Route::middleware('auth:sanctum')->prefix('dashboard')->group(function (): void {
-    Route::get('/stats', [ApiDashboardController::class, 'stats']);
-    Route::get('/recent-barcodes', [ApiDashboardController::class, 'recentBarcodes']);
+Route::middleware('auth:sanctum')->group(function (): void {
+    Route::get('/products', [ApiBarcodeController::class, 'products']);
+    Route::get('/barcodes/check-duplicate', [ApiBarcodeController::class, 'checkDuplicate']);
+    Route::post('/barcodes/generate', [ApiBarcodeController::class, 'generate']);
+
+    Route::prefix('dashboard')->group(function (): void {
+        Route::get('/stats', [ApiDashboardController::class, 'stats']);
+        Route::get('/recent-barcodes', [ApiDashboardController::class, 'recentBarcodes']);
+    });
 });
