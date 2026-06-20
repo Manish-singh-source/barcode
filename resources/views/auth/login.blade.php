@@ -8,7 +8,8 @@
 
 <div id='loginError' class='alert alert-danger d-none' role='alert'></div>
 
-<form id='loginForm' class='vstack gap-3'>
+<form id='loginForm' class='vstack gap-3' method='POST' action='{{ url('/api/v1/auth/login') }}'>
+    @csrf
     <div>
         <label for='email' class='form-label'>Email</label>
         <input type='email' id='email' class='form-control form-control-lg' required>
@@ -78,7 +79,7 @@
 
             localStorage.setItem('auth_token', payload.data.token);
             localStorage.setItem('auth_user', JSON.stringify(payload.data.user));
-            window.location.href = '/dashboard';
+            window.location.href = (payload.data.role || payload.data.user?.role || 'user') === 'admin' ? '/dashboard' : '/';
         } catch (error) {
             errorBox.textContent = 'Unable to log in right now.';
             errorBox.classList.remove('d-none');

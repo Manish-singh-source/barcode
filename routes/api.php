@@ -1,9 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController as ApiAuthController;
+use App\Http\Controllers\Api\V1\DashboardController as ApiDashboardController;
 use App\Models\BarcodeGeneration;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/scan/{unique_code}', function (string $unique_code): JsonResponse {
@@ -44,4 +44,9 @@ Route::prefix('auth')->group(function (): void {
         Route::post('/logout', [ApiAuthController::class, 'logout']);
         Route::get('/me', [ApiAuthController::class, 'me']);
     });
+});
+
+Route::middleware('auth:sanctum')->prefix('dashboard')->group(function (): void {
+    Route::get('/stats', [ApiDashboardController::class, 'stats']);
+    Route::get('/recent-barcodes', [ApiDashboardController::class, 'recentBarcodes']);
 });

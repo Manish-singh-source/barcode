@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint ) {
@@ -16,6 +13,7 @@ return new class extends Migration
             ->string('name');
             ->string('email')->unique();
             ->enum('role', ['admin', 'user'])->default('user');
+            ->timestamp('last_login_at')->nullable();
             ->timestamp('email_verified_at')->nullable();
             ->string('password');
             ->rememberToken();
@@ -39,9 +37,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('users');
