@@ -60,10 +60,22 @@
 @endsection
 @push('styles')
     <style>
+        .scanner-frame {
+            position: relative;
+            overflow: hidden;
+            padding: 0;
+            border-radius: 1rem
+        }
+
         .scanner-frame.is-active {
             border-style: solid !important;
             box-shadow: 0 0 0 4px rgba(25, 135, 84, .08);
             animation: scannerPulse 1.6s ease-in-out infinite
+        }
+
+        .scanner-frame.is-success {
+            border-color: #198754 !important;
+            box-shadow: 0 0 0 4px rgba(25, 135, 84, .14)
         }
 
         .border-dashed {
@@ -72,24 +84,44 @@
 
         .scanner-reader {
             width: 100%;
-            min-height: 250px;
+            aspect-ratio: 9 / 16;
+            min-height: 420px;
+            max-height: 78vh;
             border-radius: 1rem;
             overflow: hidden;
             background: #0f172a;
             position: relative
         }
 
+                .scanner-reader > div,
+        .scanner-reader > div > div,
+        .scanner-reader #qr-reader,
+        .scanner-reader #qr-reader__dashboard,
+        .scanner-reader #qr-reader__scan_region,
+        .scanner-reader #qr-reader__scan_region > video,
+        .scanner-reader #qr-reader__scan_region > canvas {
+            width: 100% !important;
+            height: 100% !important
+        }
+
+        .scanner-reader #qr-shaded-region,
+        .scanner-reader #qr-reader__dashboard_section_csr,
+        .scanner-reader #qr-reader__dashboard_section_toggle,
+        .scanner-reader #qr-reader__dashboard_section_swaplink {
+            display: none !important
+        }
+
         .scanner-reader video,
         .scanner-reader canvas {
             width: 100% !important;
             height: 100% !important;
-            object-fit: contain
+            object-fit: cover;
+            display: block
         }
 
         .scanner-reader video {
             background: #0f172a
         }
-
         .scanner-flash {
             position: absolute;
             inset: 0;
@@ -309,6 +341,7 @@
                 }
                 if (!q) q = new Html5Qrcode('scannerReader');
                 try {
+                    clearSuccessState();
                     run = true;
                     setActive(true);
                     st('Requesting camera access...', 'secondary');
@@ -328,6 +361,8 @@
                         last = u;
                         man.value = u;
                         try {
+                            await stopScan(true);
+                            setSuccessState('Barcode scanned successfully.');
                             await lookup(u)
                         } finally {
                             window.setTimeout(() => {
