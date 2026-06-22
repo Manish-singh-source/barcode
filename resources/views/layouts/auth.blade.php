@@ -69,7 +69,7 @@
                 <a href='{{ url('/') }}' class='text-decoration-none text-white'>
                     <div class='d-inline-flex align-items-center gap-3'>
                         <span class='auth-logo-mark'>
-                            <img src='{{ asset("logo.png") }}' alt='Barcode logo' class='auth-logo-img'>
+                            <img src='{{ asset("favicon-96x96.png") }}' alt='Barcode logo' class='auth-logo-img'>
                         </span>
                         <h1 class='display-6 fw-bold mb-0'>Barcode</h1>
                     </div>

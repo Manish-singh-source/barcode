@@ -8,7 +8,7 @@
     <nav class="navbar navbar-expand-lg landing-navbar rounded-4 px-3 px-md-4 mb-4 shadow-lg">
         <div class="container-fluid p-0">
             <a class="navbar-brand d-flex align-items-center gap-3 fw-semibold fs-4" href="{{ url('/') }}">
-                <span class="brand-mark"><img src="{{ asset('logo.png') }}" alt="BarcodeMS logo" class="brand-logo-img" style="width:100%;height:100%;object-fit:contain;position:relative;z-index:1;border-radius:0.45rem;"></span>
+                <span class="brand-mark"><img src="{{ asset('favicon-96x96.png') }}" alt="BarcodeMS logo" class="brand-logo-img" style="width:100%;height:100%;object-fit:contain;position:relative;z-index:1;border-radius:0.45rem;"></span>
                 <span>Barcode</span>
             </a>
             <button class="navbar-toggler landing-toggler" type="button" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
