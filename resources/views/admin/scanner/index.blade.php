@@ -1,51 +1,416 @@
 @extends('layouts.admin')
 @section('content')
-<div class="row g-4">
-  <div class="col-12 col-xl-8">
-    <div class="card border-0 shadow-sm rounded-4">
-      <div class="card-body p-4 p-xl-5">
-        <div id="cameraFrame" class="scanner-frame rounded-4 p-2 p-md-3 mb-4 border border-2 border-dashed border-secondary-subtle">
-          <div id="scannerReader" class="scanner-reader"></div>
+    <div class="row g-4">
+        <div class="col-12 col-xl-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4 p-xl-5">
+                    <div id="cameraFrame"
+                        class="scanner-frame rounded-4 p-2 p-md-3 mb-4 border border-2 border-dashed border-secondary-subtle">
+                        <div id="scannerReader" class="scanner-reader"></div>
+                    </div>
+                    <div class="d-grid gap-2 d-sm-flex mb-4 scanner-actions">
+                        <button type="button" id="startCameraBtn" class="btn btn-success">Start Camera</button>
+                        <button type="button" id="stopCameraBtn" class="btn btn-secondary d-none">Stop Camera</button>
+                    </div>
+                    <div class="row g-3 align-items-end mb-4">
+                        <div class="col-md-9"><label for="manualBarcodeInput" class="form-label fw-semibold">Manual
+                                Barcode</label><input type="text" id="manualBarcodeInput"
+                                class="form-control form-control-lg" placeholder="Enter barcode or unique code"></div>
+                        <div class="col-md-3 d-grid"><button type="button" id="manualLookupBtn"
+                                class="btn btn-primary btn-lg">Lookup</button></div>
+                    </div>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-9"><label for="uploadFileInput" class="form-label fw-semibold">Upload Barcode
+                                Image</label><input type="file" id="uploadFileInput" class="form-control form-control-lg"
+                                accept="image/*"></div>
+                        <div class="col-md-3 d-grid"><button type="button" id="scanFileBtn"
+                                class="btn btn-outline-primary btn-lg">Scan File</button></div>
+                    </div>
+                    <div id="scannerStatus" class="mt-4"></div>
+                </div>
+            </div>
+            <div id="resultCard" class="card border-0 shadow-sm rounded-4 mt-4 d-none">
+                <div
+                    class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 px-4 px-xl-5">
+                    <h2 class="h5 fw-bold mb-0">Scan Result</h2><button type="button" id="copyAllBtn"
+                        class="btn btn-sm btn-outline-dark">Copy All</button>
+                </div>
+                <div id="resultBorder" class="card-body p-4 p-xl-5 border-start border-4 border-success">
+                    <div id="invalidAlert" class="alert alert-danger d-none">Invalid barcode - no product found</div>
+                    <div id="resultRows" class="vstack gap-2"></div>
+                </div>
+            </div>
         </div>
-        <div class="d-grid gap-2 d-sm-flex mb-4 scanner-actions">
-          <button type="button" id="startCameraBtn" class="btn btn-success">Start Camera</button>
-          <button type="button" id="stopCameraBtn" class="btn btn-secondary d-none">Stop Camera</button>
+        <div class="col-12 col-xl-4">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4 p-xl-5">
+                    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <div>
+                            <h2 class="h5 fw-bold mb-1">Scan History (This Session)</h2>
+                            <div class="small text-secondary">Stored in this browser only.</div>
+                        </div><button type="button" id="clearHistoryBtn" class="btn btn-sm btn-outline-secondary">Clear
+                            All</button>
+                    </div>
+                    <div id="historyEmpty" class="alert alert-light border mb-0">No scans yet in this session.</div>
+                    <div id="historyList" class="list-group list-group-flush"></div>
+                </div>
+            </div>
         </div>
-        <div class="row g-3 align-items-end mb-4">
-          <div class="col-md-9"><label for="manualBarcodeInput" class="form-label fw-semibold">Manual Barcode</label><input type="text" id="manualBarcodeInput" class="form-control form-control-lg" placeholder="Enter barcode or unique code"></div>
-          <div class="col-md-3 d-grid"><button type="button" id="manualLookupBtn" class="btn btn-primary btn-lg">Lookup</button></div>
-        </div>
-        <div class="row g-3 align-items-end">
-          <div class="col-md-9"><label for="uploadFileInput" class="form-label fw-semibold">Upload Barcode Image</label><input type="file" id="uploadFileInput" class="form-control form-control-lg" accept="image/*"></div>
-          <div class="col-md-3 d-grid"><button type="button" id="scanFileBtn" class="btn btn-outline-primary btn-lg">Scan File</button></div>
-        </div>
-        <div id="scannerStatus" class="mt-4"></div>
-      </div>
     </div>
-    <div id="resultCard" class="card border-0 shadow-sm rounded-4 mt-4 d-none">
-      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 px-4 px-xl-5"><h2 class="h5 fw-bold mb-0">Scan Result</h2><button type="button" id="copyAllBtn" class="btn btn-sm btn-outline-dark">Copy All</button></div>
-      <div id="resultBorder" class="card-body p-4 p-xl-5 border-start border-4 border-success"><div id="invalidAlert" class="alert alert-danger d-none">Invalid barcode - no product found</div><div id="resultRows" class="vstack gap-2"></div></div>
-    </div>
-  </div>
-  <div class="col-12 col-xl-4">
-    <div class="card border-0 shadow-sm rounded-4">
-      <div class="card-body p-4 p-xl-5">
-        <div class="d-flex justify-content-between align-items-center gap-3 mb-3"><div><h2 class="h5 fw-bold mb-1">Scan History (This Session)</h2><div class="small text-secondary">Stored in this browser only.</div></div><button type="button" id="clearHistoryBtn" class="btn btn-sm btn-outline-secondary">Clear All</button></div>
-        <div id="historyEmpty" class="alert alert-light border mb-0">No scans yet in this session.</div>
-        <div id="historyList" class="list-group list-group-flush"></div>
-      </div>
-    </div>
-  </div>
-</div>
 @endsection
 @push('styles')
-<style>
-.scanner-frame.is-active{border-style:solid!important;box-shadow:0 0 0 4px rgba(25,135,84,.08);animation:scannerPulse 1.6s ease-in-out infinite}.border-dashed{border-style:dashed!important}.scanner-reader{width:100%;min-height:250px;border-radius:1rem;overflow:hidden;background:#0f172a;position:relative}.scanner-reader video,.scanner-reader canvas{width:100%!important;height:100%!important;object-fit:contain}.scanner-reader video{background:#0f172a}.scanner-flash{position:absolute;inset:0;background:rgba(25,135,84,.35);opacity:0;pointer-events:none;z-index:5}.scanner-flash.is-visible{animation:scanFlash 420ms ease-out}#resultBorder.is-success{border-color:#198754!important}#resultBorder.is-danger{border-color:#dc3545!important}#historyList .list-group-item{border-left:0;border-right:0;padding-left:0;padding-right:0;background:transparent}#historyList .history-row{background:rgba(15,23,42,.03);border-radius:.85rem;transition:background-color .2s ease,transform .2s ease}#historyList .history-row:hover{background:rgba(15,23,42,.06);transform:translateY(-1px)}@keyframes scannerPulse{0%,100%{box-shadow:0 0 0 0 rgba(25,135,84,.12)}50%{box-shadow:0 0 0 8px rgba(25,135,84,.02)}}@keyframes scanFlash{0%{opacity:0}15%{opacity:1}100%{opacity:0}}@media (max-width:575.98px){.scanner-actions .btn{width:100%}.scanner-reader{min-height:250px}}
-</style>
+    <style>
+        .scanner-frame.is-active {
+            border-style: solid !important;
+            box-shadow: 0 0 0 4px rgba(25, 135, 84, .08);
+            animation: scannerPulse 1.6s ease-in-out infinite
+        }
+
+        .border-dashed {
+            border-style: dashed !important
+        }
+
+        .scanner-reader {
+            width: 100%;
+            min-height: 250px;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: #0f172a;
+            position: relative
+        }
+
+        .scanner-reader video,
+        .scanner-reader canvas {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain
+        }
+
+        .scanner-reader video {
+            background: #0f172a
+        }
+
+        .scanner-flash {
+            position: absolute;
+            inset: 0;
+            background: rgba(25, 135, 84, .35);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5
+        }
+
+        .scanner-flash.is-visible {
+            animation: scanFlash 420ms ease-out
+        }
+
+        #resultBorder.is-success {
+            border-color: #198754 !important
+        }
+
+        #resultBorder.is-danger {
+            border-color: #dc3545 !important
+        }
+
+        #historyList .list-group-item {
+            border-left: 0;
+            border-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+            background: transparent
+        }
+
+        #historyList .history-row {
+            background: rgba(15, 23, 42, .03);
+            border-radius: .85rem;
+            transition: background-color .2s ease, transform .2s ease
+        }
+
+        #historyList .history-row:hover {
+            background: rgba(15, 23, 42, .06);
+            transform: translateY(-1px)
+        }
+
+        @keyframes scannerPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(25, 135, 84, .12)
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(25, 135, 84, .02)
+            }
+        }
+
+        @keyframes scanFlash {
+            0% {
+                opacity: 0
+            }
+
+            15% {
+                opacity: 1
+            }
+
+            100% {
+                opacity: 0
+            }
+        }
+
+        @media (max-width:575.98px) {
+            .scanner-actions .btn {
+                width: 100%
+            }
+
+            .scanner-reader {
+                min-height: 250px
+            }
+        }
+    </style>
 @endpush
 @push('scripts')
-<script src="https://unpkg.com/html5-qrcode"></script>
-<script>
-(()=>{const h='admin_scan_history',f=document.getElementById('cameraFrame'),r=document.getElementById('scannerReader'),s=document.getElementById('scannerStatus'),ha=document.getElementById('historyEmpty'),hl=document.getElementById('historyList'),rr=document.getElementById('resultRows'),rb=document.getElementById('resultBorder'),rc=document.getElementById('resultCard'),ia=document.getElementById('invalidAlert'),man=document.getElementById('manualBarcodeInput'),uf=document.getElementById('uploadFileInput'),start=document.getElementById('startCameraBtn'),stop=document.getElementById('stopCameraBtn'),look=document.getElementById('manualLookupBtn'),scan=document.getElementById('scanFileBtn'),clear=document.getElementById('clearHistoryBtn'),copy=document.getElementById('copyAllBtn');let q=null,run=false,prog=false,last='',text='',flash=null;const hist=()=>{try{return JSON.parse(localStorage.getItem(h)||'[]')}catch(e){return[]}};const save=a=>{localStorage.setItem(h,JSON.stringify(a.slice(0,20)));renderHist()};const push=(u,t,v)=>{const a=hist().filter(i=>i.unique_code!==u||i.result_text!==t||i.valid!==v);a.unshift({unique_code:u,result_text:t,valid:v,timestamp:new Date().toISOString()});save(a)};const renderHist=()=>{const a=hist().slice(0,10);hl.innerHTML='';ha.classList.toggle('d-none',a.length!==0);a.forEach((i,idx)=>{const row=document.createElement('div');row.className='list-group-item';row.innerHTML=`<div class="history-row p-3"><div class="d-flex flex-wrap justify-content-between align-items-center gap-3"><div><div class="fw-semibold">${i.unique_code}</div><div class="small text-secondary">${new Date(i.timestamp).toLocaleString()}</div><div class="small ${i.valid?'text-success':'text-danger'}">${i.valid?'Found':'Invalid'}</div></div><div class="d-flex gap-2"><button type="button" class="btn btn-sm btn-outline-dark" data-a="copy" data-i="${idx}">Copy</button><button type="button" class="btn btn-sm btn-outline-danger" data-a="delete" data-i="${idx}">Delete</button></div></div></div>`;hl.appendChild(row)})};const st=(m,t='info')=>s.innerHTML=m?`<div class="alert alert-${t} mb-0">${m}</div>`:'';const hs=(m,t='warning')=>s.innerHTML=m?`<div class="alert alert-${t} mb-0">${m}</div>`:'';const setActive=a=>{f.classList.toggle('is-active',a);f.classList.toggle('border-dashed',!a);start.classList.toggle('d-none',a);stop.classList.toggle('d-none',!a)};const flashCue=()=>{const el=flash||(flash=document.createElement('div'));if(!el.parentNode)r.appendChild(el);el.className='scanner-flash';el.classList.remove('is-visible');void el.offsetWidth;el.classList.add('is-visible')};const resState=ok=>{rc.classList.remove('d-none');rb.classList.toggle('is-success',ok);rb.classList.toggle('is-danger',!ok);ia.classList.toggle('d-none',ok)};const render=d=>{const p=d.product||{},rows=[['Unique Code',d.unique_code],['Barcode Format',d.barcode_format||'N/A'],['Product Name',p.name||'N/A'],['Scanned At',d.scanned_at?new Date(d.scanned_at).toLocaleString():new Date().toLocaleString()]];text=rows.map(([l,v])=>`${l}: ${v}`).join('\n');rr.innerHTML=rows.map(([l,v])=>`<div class="d-flex justify-content-between gap-3 border-bottom pb-2"><span class="text-secondary">${l}</span><span class="fw-semibold text-end">${v??'N/A'}</span></div>`).join('');resState(true)};const notFound=u=>{text=`Unique Code: ${u}\nStatus: Invalid`;rr.innerHTML='';resState(false)};const lookup=async(code)=>{const u=(code||'').trim();if(!u){st('Enter a barcode value first.','warning');return}man.value=u;st('Looking up barcode...','secondary');try{const res=await fetch(`/api/v1/scan/${encodeURIComponent(u)}`,{headers:{Accept:'application/json'}}),p=await res.json().catch(()=>({}));if(p.data&&p.data.valid){st('Barcode found.','success');render(p.data);push(u,text,true)}else{notFound(u);st(p.message||'Invalid barcode - no product found.','danger');push(u,text,false)}}catch(e){notFound(u);st('Something went wrong while looking up the barcode.','danger');push(u,text,false)}};const startScan=async()=>{if(run)return;if(typeof Html5Qrcode==='undefined'){st('Scanner library failed to load. Please refresh the page and try again.','danger');return}if(!q)q=new Html5Qrcode('scannerReader');try{run=true;setActive(true);st('Requesting camera access...','secondary');const scanConfig={fps:8,qrbox:{width:180,height:250},aspectRatio:0.5625,disableFlip:true};const onScan=async(decoded)=>{const u=(decoded||'').trim();if(!u||prog||u===last)return;prog=true;last=u;man.value=u;try{await lookup(u)}finally{window.setTimeout(()=>{last=''},1200);prog=false}};const cameras=await Html5Qrcode.getCameras();if(!cameras||!cameras.length)throw new Error('No camera devices were found.');const preferred=cameras.find(c=>/back|rear|environment/i.test(c.label))||cameras[0];await q.start(preferred.id,scanConfig,onScan)}catch(e){run=false;setActive(false);st('Unable to start the scanner','danger')}};const stopScan=async(silent=false)=>{if(q&&run){try{await q.stop()}catch(e){}run=false;q.clear().catch(()=>{})}setActive(false);last='';if(!silent)st('Camera stopped.','secondary')};const fileScan=async()=>{const file=uf.files[0];if(!file){st('Choose an image file to scan.','warning');return}if(!q)q=new Html5Qrcode('scannerReader');try{const u=(await q.scanFile(file,true)).trim();man.value=u;flashCue();await lookup(u)}catch(e){st('No barcode could be read from that image.','danger')}};const copyAll=async()=>{if(!text)return;await navigator.clipboard.writeText(text);st('Result copied to clipboard.','success')};start.addEventListener('click',startScan);stop.addEventListener('click',()=>stopScan());look.addEventListener('click',()=>lookup(man.value));man.addEventListener('keydown',e=>{if(e.key==='Enter')lookup(man.value)});scan.addEventListener('click',fileScan);copy.addEventListener('click',copyAll);clear.addEventListener('click',()=>{localStorage.removeItem(h);renderHist();hs('History cleared.','secondary')});hl.addEventListener('click',async e=>{const b=e.target.closest('button[data-a]');if(!b)return;const a=hist(),i=Number(b.dataset.i),it=a[i];if(!it)return;if(b.dataset.a==='copy'){await navigator.clipboard.writeText(it.result_text);hs('History item copied.','success')}else{a.splice(i,1);save(a);hs('History item deleted.','secondary')}});window.addEventListener('beforeunload',()=>stopScan(true));renderHist();setActive(false)})();
-</script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        (() => {
+            const h = 'admin_scan_history',
+                f = document.getElementById('cameraFrame'),
+                r = document.getElementById('scannerReader'),
+                s = document.getElementById('scannerStatus'),
+                ha = document.getElementById('historyEmpty'),
+                hl = document.getElementById('historyList'),
+                rr = document.getElementById('resultRows'),
+                rb = document.getElementById('resultBorder'),
+                rc = document.getElementById('resultCard'),
+                ia = document.getElementById('invalidAlert'),
+                man = document.getElementById('manualBarcodeInput'),
+                uf = document.getElementById('uploadFileInput'),
+                start = document.getElementById('startCameraBtn'),
+                stop = document.getElementById('stopCameraBtn'),
+                look = document.getElementById('manualLookupBtn'),
+                scan = document.getElementById('scanFileBtn'),
+                clear = document.getElementById('clearHistoryBtn'),
+                copy = document.getElementById('copyAllBtn');
+            let q = null,
+                run = false,
+                prog = false,
+                last = '',
+                text = '',
+                flash = null;
+            const hist = () => {
+                try {
+                    return JSON.parse(localStorage.getItem(h) || '[]')
+                } catch (e) {
+                    return []
+                }
+            };
+            const save = a => {
+                localStorage.setItem(h, JSON.stringify(a.slice(0, 20)));
+                renderHist()
+            };
+            const push = (u, t, v) => {
+                const a = hist().filter(i => i.unique_code !== u || i.result_text !== t || i.valid !== v);
+                a.unshift({
+                    unique_code: u,
+                    result_text: t,
+                    valid: v,
+                    timestamp: new Date().toISOString()
+                });
+                save(a)
+            };
+            const renderHist = () => {
+                const a = hist().slice(0, 10);
+                hl.innerHTML = '';
+                ha.classList.toggle('d-none', a.length !== 0);
+                a.forEach((i, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'list-group-item';
+                    row.innerHTML =
+                        `<div class="history-row p-3"><div class="d-flex flex-wrap justify-content-between align-items-center gap-3"><div><div class="fw-semibold">${i.unique_code}</div><div class="small text-secondary">${new Date(i.timestamp).toLocaleString()}</div><div class="small ${i.valid?'text-success':'text-danger'}">${i.valid?'Found':'Invalid'}</div></div><div class="d-flex gap-2"><button type="button" class="btn btn-sm btn-outline-dark" data-a="copy" data-i="${idx}">Copy</button><button type="button" class="btn btn-sm btn-outline-danger" data-a="delete" data-i="${idx}">Delete</button></div></div></div>`;
+                    hl.appendChild(row)
+                })
+            };
+            const st = (m, t = 'info') => s.innerHTML = m ? `<div class="alert alert-${t} mb-0">${m}</div>` : '';
+            const hs = (m, t = 'warning') => s.innerHTML = m ? `<div class="alert alert-${t} mb-0">${m}</div>` : '';
+            const setActive = a => {
+                f.classList.toggle('is-active', a);
+                f.classList.toggle('border-dashed', !a);
+                start.classList.toggle('d-none', a);
+                stop.classList.toggle('d-none', !a)
+            };
+            const flashCue = () => {
+                const el = flash || (flash = document.createElement('div'));
+                if (!el.parentNode) r.appendChild(el);
+                el.className = 'scanner-flash';
+                el.classList.remove('is-visible');
+                void el.offsetWidth;
+                el.classList.add('is-visible')
+            };
+            const resState = ok => {
+                rc.classList.remove('d-none');
+                rb.classList.toggle('is-success', ok);
+                rb.classList.toggle('is-danger', !ok);
+                ia.classList.toggle('d-none', ok)
+            };
+            const render = d => {
+                const p = d.product || {},
+                    rows = [
+                        ['Unique Code', d.unique_code],
+                        ['Barcode Format', d.barcode_format || 'N/A'],
+                        ['Product Name', p.name || 'N/A'],
+                        ['Scanned At', d.scanned_at ? new Date(d.scanned_at).toLocaleString() : new Date()
+                            .toLocaleString()
+                        ]
+                    ];
+                text = rows.map(([l, v]) => `${l}: ${v}`).join('\n');
+                rr.innerHTML = rows.map(([l, v]) =>
+                    `<div class="d-flex justify-content-between gap-3 border-bottom pb-2"><span class="text-secondary">${l}</span><span class="fw-semibold text-end">${v??'N/A'}</span></div>`
+                    ).join('');
+                resState(true)
+            };
+            const notFound = u => {
+                text = `Unique Code: ${u}\nStatus: Invalid`;
+                rr.innerHTML = '';
+                resState(false)
+            };
+            const lookup = async (code) => {
+                const u = (code || '').trim();
+                if (!u) {
+                    st('Enter a barcode value first.', 'warning');
+                    return
+                }
+                man.value = u;
+                st('Looking up barcode...', 'secondary');
+                try {
+                    const res = await fetch(`/api/v1/scan/${encodeURIComponent(u)}`, {
+                            headers: {
+                                Accept: 'application/json'
+                            }
+                        }),
+                        p = await res.json().catch(() => ({}));
+                    if (p.data && p.data.valid) {
+                        st('Barcode found.', 'success');
+                        render(p.data);
+                        push(u, text, true)
+                    } else {
+                        notFound(u);
+                        st(p.message || 'Invalid barcode - no product found.', 'danger');
+                        push(u, text, false)
+                    }
+                } catch (e) {
+                    notFound(u);
+                    st('Something went wrong while looking up the barcode.', 'danger');
+                    push(u, text, false)
+                }
+            };
+            const startScan = async () => {
+                if (run) return;
+                if (typeof Html5Qrcode === 'undefined') {
+                    st('Scanner library failed to load. Please refresh the page and try again.', 'danger');
+                    return
+                }
+                if (!q) q = new Html5Qrcode('scannerReader');
+                try {
+                    run = true;
+                    setActive(true);
+                    st('Requesting camera access...', 'secondary');
+                    const scanConfig = {
+                        fps: 8,
+                        qrbox: {
+                            width: 180,
+                            height: 250
+                        },
+                        aspectRatio: 0.5625,
+                        disableFlip: true
+                    };
+                    const onScan = async (decoded) => {
+                        const u = (decoded || '').trim();
+                        if (!u || prog || u === last) return;
+                        prog = true;
+                        last = u;
+                        man.value = u;
+                        try {
+                            await lookup(u)
+                        } finally {
+                            window.setTimeout(() => {
+                                last = ''
+                            }, 1200);
+                            prog = false
+                        }
+                    };
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (!cameras || !cameras.length) throw new Error('No camera devices were found.');
+                    const preferred = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[0];
+                    await q.start(preferred.id, scanConfig, onScan)
+                } catch (e) {
+                    run = false;
+                    setActive(false);
+                    st('Unable to start the scanner', 'danger')
+                }
+            };
+            const stopScan = async (silent = false) => {
+                if (q && run) {
+                    try {
+                        await q.stop()
+                    } catch (e) {}
+                    run = false;
+                    q.clear().catch(() => {})
+                }
+                setActive(false);
+                last = '';
+                if (!silent) st('Camera stopped.', 'secondary')
+            };
+            const fileScan = async () => {
+                const file = uf.files[0];
+                if (!file) {
+                    st('Choose an image file to scan.', 'warning');
+                    return
+                }
+                if (!q) q = new Html5Qrcode('scannerReader');
+                try {
+                    const u = (await q.scanFile(file, true)).trim();
+                    man.value = u;
+                    flashCue();
+                    await lookup(u)
+                } catch (e) {
+                    st('No barcode could be read from that image.', 'danger')
+                }
+            };
+            const copyAll = async () => {
+                if (!text) return;
+                await navigator.clipboard.writeText(text);
+                st('Result copied to clipboard.', 'success')
+            };
+            start.addEventListener('click', startScan);
+            stop.addEventListener('click', () => stopScan());
+            look.addEventListener('click', () => lookup(man.value));
+            man.addEventListener('keydown', e => {
+                if (e.key === 'Enter') lookup(man.value)
+            });
+            scan.addEventListener('click', fileScan);
+            copy.addEventListener('click', copyAll);
+            clear.addEventListener('click', () => {
+                localStorage.removeItem(h);
+                renderHist();
+                hs('History cleared.', 'secondary')
+            });
+            hl.addEventListener('click', async e => {
+                const b = e.target.closest('button[data-a]');
+                if (!b) return;
+                const a = hist(),
+                    i = Number(b.dataset.i),
+                    it = a[i];
+                if (!it) return;
+                if (b.dataset.a === 'copy') {
+                    await navigator.clipboard.writeText(it.result_text);
+                    hs('History item copied.', 'success')
+                } else {
+                    a.splice(i, 1);
+                    save(a);
+                    hs('History item deleted.', 'secondary')
+                }
+            });
+            window.addEventListener('beforeunload', () => stopScan(true));
+            renderHist();
+            setActive(false)
+        })();
+    </script>
 @endpush
