@@ -27,6 +27,7 @@
                                 class="btn btn-outline-primary btn-lg">Scan File</button></div>
                     </div>
                     <div id="scannerStatus" class="mt-4"></div>
+                    <div id="scannerSuccessBanner" class="alert alert-success d-none mt-3 mb-0 scanner-success-banner">Barcode scanned successfully.</div>
                 </div>
             </div>
             <div id="resultCard" class="card border-0 shadow-sm rounded-4 mt-4 d-none">
@@ -213,6 +214,7 @@
                 rb = document.getElementById('resultBorder'),
                 rc = document.getElementById('resultCard'),
                 ia = document.getElementById('invalidAlert'),
+                sb = document.getElementById('scannerSuccessBanner'),
                 man = document.getElementById('manualBarcodeInput'),
                 uf = document.getElementById('uploadFileInput'),
                 start = document.getElementById('startCameraBtn'),
@@ -271,10 +273,15 @@
             const setSuccessState = msg => {
                 f.classList.remove('is-active');
                 f.classList.add('is-success');
+                if (sb) {
+                    sb.textContent = msg;
+                    sb.classList.remove('d-none')
+                }
                 st(msg, 'success')
             };
             const clearSuccessState = () => {
-                f.classList.remove('is-success')
+                f.classList.remove('is-success');
+                if (sb) sb.classList.add('d-none')
             };
             const flashCue = () => {
                 const el = flash || (flash = document.createElement('div'));
