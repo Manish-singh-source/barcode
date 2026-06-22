@@ -3,7 +3,7 @@
 @section('content')
 <div class='text-center mb-4'>
     <h2 class='fw-bold mb-2'>Create Account</h2>
-    <p class='text-secondary mb-0'>Join BarcodeMS and get started.</p>
+    <p class='text-secondary mb-0'>Join Barcode and get started.</p>
 </div>
 
 <div id='registerError' class='alert alert-danger d-none' role='alert'></div>

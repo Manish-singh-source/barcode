@@ -35,7 +35,7 @@
 
 <div class='d-flex flex-column flex-sm-row justify-content-between gap-2 mt-4 small'>
     <a href='{{ url('/forgot-password') }}' class='text-decoration-none'>Forgot Password?</a>
-    <a href='{{ url('/register') }}' class='text-decoration-none'>Don't have an account? Register</a>
+    {{-- <a href='{{ url('/register') }}' class='text-decoration-none'>Don't have an account? Register</a> --}}
 </div>
 @endsection
 
