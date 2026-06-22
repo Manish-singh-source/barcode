@@ -132,13 +132,13 @@
                 @csrf
                 @method('PUT')
                 <div class="modal-header">
-                    <h5 class="modal-title">Update Barcode</h5>
+                    <h5 class="modal-title">Update Barcode Data</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body vstack gap-3">
                     <div>
-                        <label for="editCustomLabel" class="form-label fw-semibold">Custom Label</label>
-                        <input type="text" name="custom_label" id="editCustomLabel" class="form-control" value="{{ \App\Models\BarcodeGeneration::normalizeText($barcode->custom_label) }}" placeholder="Update label">
+                        <label for="editBarcodeData" class="form-label fw-semibold">Barcode Data</label>
+                        <textarea name="barcode_data" id="editBarcodeData" class="form-control" rows="4" placeholder="Update barcode data">{{ \App\Models\BarcodeGeneration::normalizeText($barcode->barcode_data) }}</textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -178,78 +178,106 @@
     .font-monospace {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
     }
+
+    .modal.is-open {
+        display: block;
+    }
 </style>
 @endpush
 
 @push('scripts')
 <script>
     (function () {
-        const editModal = new bootstrap.Modal(document.getElementById('editBarcodeModal'));
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteBarcodeModal'));
+        const editModalEl = document.getElementById('editBarcodeModal');
+        const deleteModalEl = document.getElementById('deleteBarcodeModal');
         const editBtn = document.getElementById('editBtn');
         const deleteBtn = document.getElementById('deleteBtn');
-        const editCustomLabel = document.getElementById('editCustomLabel');
         const editBarcodeForm = document.getElementById('editBarcodeForm');
         const deleteBarcodeForm = document.getElementById('deleteBarcodeForm');
-        const downloadPngBtn = document.getElementById('downloadPngBtn');
-        const downloadSvgBtn = document.getElementById('downloadSvgBtn');
+        const editBarcodeData = document.getElementById('editBarcodeData');
+        const body = document.body;
+        let activeBackdrop = null;
 
         const barcodeId = {{ (int) $barcode->id }};
-        const barcodeImageUrl = @json($barcodeImageUrl);
-        const uniqueCode = @json($barcode->unique_code);
-        const barcodeSvg = @json($barcode->barcode_svg ?? '');
+
+        function openModal(modalEl) {
+            if (!modalEl) {
+                return;
+            }
+
+            modalEl.classList.add('show', 'is-open');
+            modalEl.setAttribute('aria-modal', 'true');
+            modalEl.removeAttribute('aria-hidden');
+
+            if (!activeBackdrop) {
+                activeBackdrop = document.createElement('div');
+                activeBackdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(activeBackdrop);
+            }
+
+            body.classList.add('modal-open');
+            body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalEl) {
+            if (!modalEl) {
+                return;
+            }
+
+            modalEl.classList.remove('show', 'is-open');
+            modalEl.setAttribute('aria-hidden', 'true');
+            modalEl.removeAttribute('aria-modal');
+
+            if (activeBackdrop) {
+                activeBackdrop.remove();
+                activeBackdrop = null;
+            }
+
+            body.classList.remove('modal-open');
+            body.style.overflow = '';
+        }
+
+        function wireDismissButtons(modalEl) {
+            modalEl.querySelectorAll('[data-bs-dismiss="modal"]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    closeModal(modalEl);
+                });
+            });
+        }
+
+        wireDismissButtons(editModalEl);
+        wireDismissButtons(deleteModalEl);
 
         editBtn.addEventListener('click', function () {
             editBarcodeForm.action = '{{ url('/barcodes') }}/' + barcodeId;
-            editCustomLabel.value = @json(\App\Models\BarcodeGeneration::normalizeText($barcode->custom_label ?? ''));
-            editModal.show();
+            editBarcodeData.value = @json(\App\Models\BarcodeGeneration::normalizeText($barcode->barcode_data ?? ''));
+            openModal(editModalEl);
         });
 
         deleteBtn.addEventListener('click', function () {
             deleteBarcodeForm.action = '{{ url('/barcodes') }}/' + barcodeId;
-            deleteModal.show();
+            openModal(deleteModalEl);
         });
 
-        function downloadBlob(url, filename) {
-            fetch(url)
-                .then((response) => response.blob())
-                .then((blob) => {
-                    const objectUrl = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = objectUrl;
-                    link.download = filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-                });
-        }
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeModal(editModalEl);
+                closeModal(deleteModalEl);
+            }
+        });
 
-        if (downloadPngBtn) {
-            downloadPngBtn.addEventListener('click', function () {
-                if (barcodeImageUrl) {
-                    downloadBlob(barcodeImageUrl, uniqueCode + '.png');
+        [editModalEl, deleteModalEl].forEach(function (modalEl) {
+            modalEl.addEventListener('click', function (event) {
+                if (event.target === modalEl) {
+                    closeModal(modalEl);
                 }
             });
-        }
-
-        if (downloadSvgBtn) {
-            downloadSvgBtn.addEventListener('click', function () {
-                if (!barcodeSvg) {
-                    return;
-                }
-
-                const blob = new Blob([barcodeSvg], { type: 'image/svg+xml;charset=utf-8' });
-                const objectUrl = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = objectUrl;
-                link.download = uniqueCode + '.svg';
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-            });
-        }
+        });
     })();
 </script>
 @endpush
+
+
+
+
+
