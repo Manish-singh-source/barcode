@@ -12,6 +12,9 @@
                         <button type="button" id="startCameraBtn" class="btn btn-success">Start Camera</button>
                         <button type="button" id="stopCameraBtn" class="btn btn-secondary d-none">Stop Camera</button>
                     </div>
+                    <div id="scannerStatus" class="mt-4"></div>
+                    <div id="scannerSuccessBanner" class="alert alert-success d-none mt-3 mb-0 scanner-success-banner">Barcode scanned successfully.</div>
+                
                     <div class="row g-3 align-items-end mb-4">
                         <div class="col-md-9"><label for="manualBarcodeInput" class="form-label fw-semibold">Manual
                                 Barcode</label><input type="text" id="manualBarcodeInput"
@@ -26,9 +29,7 @@
                         <div class="col-md-3 d-grid"><button type="button" id="scanFileBtn"
                                 class="btn btn-outline-primary btn-lg">Scan File</button></div>
                     </div>
-                    <div id="scannerStatus" class="mt-4"></div>
-                    <div id="scannerSuccessBanner" class="alert alert-success d-none mt-3 mb-0 scanner-success-banner">Barcode scanned successfully.</div>
-                </div>
+                    </div>
             </div>
             <div id="resultCard" class="card border-0 shadow-sm rounded-4 mt-4 d-none">
                 <div
