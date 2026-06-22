@@ -786,6 +786,7 @@
             let scanningLock = false;
             let lastDecoded = '';
             let lastResultText = '';
+            let lastScannedCode = '';
 
             function setStatus(message, type = 'info') {
                 scannerStatus.innerHTML = message ? `<div class="alert alert-${type} mb-0">${message}</div>` : '';
@@ -1013,8 +1014,8 @@
                 setHistoryMessage('History cleared.', 'secondary');
             });
             copyAllBtn.addEventListener('click', async () => {
-                if (!lastResultText) return;
-                await navigator.clipboard.writeText(lastResultText);
+                if (!lastScannedCode) return;
+                await navigator.clipboard.writeText(lastScannedCode);
                 setStatus('Result copied to clipboard.', 'success');
             });
 
@@ -1026,7 +1027,7 @@
                 const item = items[index];
                 if (!item) return;
                 if (button.dataset.action === 'copy') {
-                    await navigator.clipboard.writeText(item.result_text);
+                    await navigator.clipboard.writeText(item.unique_code);
                     setHistoryMessage('History item copied.', 'success');
                 } else if (button.dataset.action === 'delete') {    
                     items.splice(index, 1);
