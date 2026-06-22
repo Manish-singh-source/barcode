@@ -760,6 +760,8 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
         (() => {
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            const mainNavbar = document.getElementById('mainNavbar');
             const historyKey = 'scan_history';
             const cameraFrame = document.getElementById('cameraFrame');
             const scannerReader = document.getElementById('scannerReader');
@@ -787,6 +789,14 @@
             let lastDecoded = '';
             let lastResultText = '';
             let lastScannedCode = '';
+
+
+            if (navbarToggler && mainNavbar) {
+                navbarToggler.addEventListener('click', function () {
+                    const isOpen = mainNavbar.classList.toggle('show');
+                    navbarToggler.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                });
+            }
 
             function setStatus(message, type = 'info') {
                 scannerStatus.innerHTML = message ? `<div class="alert alert-${type} mb-0">${message}</div>` : '';

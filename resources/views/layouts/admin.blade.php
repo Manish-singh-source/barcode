@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang='en'>
 
 <head>
@@ -29,8 +29,9 @@
             width: 250px;
             background: #1e293b;
             color: #fff;
-            z-index: 1030;
-            transition: transform 0.25s ease;
+            z-index: 1040;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+            will-change: transform;
         }
 
         .admin-main {
@@ -73,9 +74,10 @@
             position: fixed;
             inset: 0;
             background: rgba(15, 23, 42, 0.56);
-            z-index: 1025;
+            z-index: 1035;
             opacity: 0;
             visibility: hidden;
+            pointer-events: none;
             transition: opacity 0.25s ease, visibility 0.25s ease;
         }
 
@@ -86,6 +88,7 @@
         body.admin-shell.sidebar-open .admin-backdrop {
             opacity: 1;
             visibility: visible;
+            pointer-events: auto;
         }
 
         .admin-menu-toggle {
@@ -122,6 +125,7 @@
 
             body.admin-shell.sidebar-open .admin-sidebar {
                 transform: translateX(0);
+                box-shadow: 0 1.25rem 2.5rem rgba(15, 23, 42, 0.28);
             }
 
             .admin-main {
