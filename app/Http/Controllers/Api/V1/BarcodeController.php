@@ -20,7 +20,7 @@ class BarcodeController extends Controller
     {
         $draw = (int) $request->input('draw', 1);
         $start = max((int) $request->input('start', 0), 0);
-        $length = max((int) $request->input('length', 10), 1);
+        $length = max((int) $request->input('length', 5), 1);
         $search = trim((string) data_get($request->input('search', []), 'value', ''));
         $orderColumnIndex = (int) data_get($request->input('order', []), '0.column', 0);
         $orderDirection = strtolower((string) data_get($request->input('order', []), '0.dir', 'desc')) === 'asc' ? 'asc' : 'desc';
