@@ -268,6 +268,14 @@
                 start.classList.toggle('d-none', a);
                 stop.classList.toggle('d-none', !a)
             };
+            const setSuccessState = msg => {
+                f.classList.remove('is-active');
+                f.classList.add('is-success');
+                st(msg, 'success')
+            };
+            const clearSuccessState = () => {
+                f.classList.remove('is-success')
+            };
             const flashCue = () => {
                 const el = flash || (flash = document.createElement('div'));
                 if (!el.parentNode) r.appendChild(el);
@@ -378,7 +386,7 @@
                 } catch (e) {
                     run = false;
                     setActive(false);
-                    st('Unable to start the scanner', 'danger')
+                    st('Unable to start the scanner' + (e && e.message ? ': ' + e.message : ''), 'danger')
                 }
             };
             const stopScan = async (silent = false) => {
