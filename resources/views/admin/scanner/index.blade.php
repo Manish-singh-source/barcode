@@ -375,6 +375,7 @@
                             const found = await lookup(u);
                             if (found) {
                                 await stopScan(true);
+                                setActive(false);
                                 setSuccessState('Barcode scanned successfully.');
                             }
                         } finally {
