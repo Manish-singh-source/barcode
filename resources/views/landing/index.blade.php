@@ -862,21 +862,12 @@
                     ['Unique Code', data.unique_code],
                     ['Barcode Format', data.barcode_format || 'N/A'],
                     ['Product Name', product.name || 'N/A'],
-                    ['Description', product.description || 'N/A'],
-                    ['SKU', product.sku || 'N/A'],
-                    ['Price', product.price ?? 'N/A'],
-                    ['Brand', product.brand || 'N/A'],
-                    ['Category', product.category || 'N/A'],
-                    ['Unit', product.unit || 'N/A'],
-                    ['Stock Quantity', product.stock_quantity ?? 'N/A'],
-                    ['Scanned At', data.scanned_at ? new Date(data.scanned_at).toLocaleString() : new Date()
-                        .toLocaleString()
-                    ],
+                    ['Scanned At', data.scanned_at ? new Date(data.scanned_at).toLocaleString() : new Date().toLocaleString()],
                 ];
-                lastResultText = rows.map(([label, value]) => `${label}: ${value}`).join('\n');
-                resultRows.innerHTML = rows.map(([label, value]) =>
-                    `<div class="d-flex justify-content-between gap-3 border-bottom pb-2"><span class="text-secondary">${label}</span><span class="fw-semibold text-end">${value ?? 'N/A'}</span></div>`
-                    ).join('');
+                lastResultText = rows.map(function(pair) { return pair[0] + ': ' + pair[1]; }).join('\n');
+                resultRows.innerHTML = rows.map(function(pair) {
+                    return '<div class="d-flex justify-content-between gap-3 border-bottom pb-2"><span class="text-secondary">' + pair[0] + '</span><span class="fw-semibold text-end">' + (pair[1] ?? 'N/A') + '</span></div>';
+                }).join('');
                 resultCard.classList.remove('d-none');
                 resultBorder.classList.remove('border-danger');
                 resultBorder.classList.add('border-success');
