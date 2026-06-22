@@ -195,10 +195,15 @@
         const editBarcodeForm = document.getElementById('editBarcodeForm');
         const deleteBarcodeForm = document.getElementById('deleteBarcodeForm');
         const editBarcodeData = document.getElementById('editBarcodeData');
+        const downloadPngBtn = document.getElementById('downloadPngBtn');
+        const downloadSvgBtn = document.getElementById('downloadSvgBtn');
         const body = document.body;
         let activeBackdrop = null;
 
         const barcodeId = {{ (int) $barcode->id }};
+        const barcodeImageUrl = @json($barcodeImageUrl);
+        const barcodeSvg = @json($barcode->barcode_svg ?? '');
+        const uniqueCode = @json($barcode->unique_code);
 
         function openModal(modalEl) {
             if (!modalEl) {
@@ -273,11 +278,38 @@
                 }
             });
         });
+
+        function triggerDownload(href, filename) {
+            const link = document.createElement('a');
+            link.href = href;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        if (downloadPngBtn) {
+            downloadPngBtn.addEventListener('click', function () {
+                if (!barcodeImageUrl) {
+                    return;
+                }
+
+                triggerDownload(barcodeImageUrl, uniqueCode + '.png');
+            });
+        }
+
+        if (downloadSvgBtn) {
+            downloadSvgBtn.addEventListener('click', function () {
+                if (!barcodeSvg) {
+                    return;
+                }
+
+                const blob = new Blob([barcodeSvg], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                triggerDownload(url, uniqueCode + '.svg');
+                window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+            });
+        }
     })();
 </script>
 @endpush
-
-
-
-
-
