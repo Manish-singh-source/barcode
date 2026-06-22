@@ -133,7 +133,7 @@ class BarcodeController extends Controller
     {
         $validated = $request->validate([
             'barcode_data' => ['required', 'string', 'max:500'],
-            'barcode_format' => ['required', 'in:code128,qrcode,code39,ean13'],
+            'barcode_format' => ['required', 'in:code128,code39,ean13'],
             'custom_label' => ['nullable', 'string', 'max:255'],
         ]);
 
