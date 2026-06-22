@@ -118,7 +118,7 @@
         <div class='mb-4'>
             <a href='{{ url('/dashboard') }}' class='text-decoration-none text-white d-block'>
                 <div class='d-flex align-items-center gap-2'>
-                    <span class='fs-3'>?</span>
+                    {{-- <span class='fs-3'>?</span> --}}
                     <div>
                         <div class='fw-bold fs-5'>BarcodeMS</div>
                         <div class='small text-white-50'>Admin Panel</div>
