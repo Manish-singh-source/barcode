@@ -157,7 +157,7 @@
                         <img src='{{ asset('favicon-96x96.png') }}' alt='Barcode logo' class='auth-logo-img'>
                     </span>
                     <div>
-                        <div class='fw-bold fs-5'>BarcodeMS</div>
+                        <div class='fw-bold fs-5'>Barcode</div>
                         <div class='small text-white-50'>Admin Panel</div>
                     </div>
                 </div>
