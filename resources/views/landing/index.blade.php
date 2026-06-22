@@ -4,7 +4,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark rounded-4 px-3 px-md-4 mb-4 shadow-sm">
     <div class="container-fluid p-0">
         <a class="navbar-brand fw-bold fs-4" href="{{ url('/') }}">BarcodeMS</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="mainNavbar">
@@ -191,6 +191,8 @@
 @push('scripts')
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script>
+    const navbarToggler = document.querySelector('.navbar-toggler');
+    const mainNavbar = document.getElementById('mainNavbar');
     const historyKey = 'scan_history';
     const video = document.getElementById('camera-preview');
     const scannerStatus = document.getElementById('scanner-status');
@@ -212,6 +214,13 @@
     let html5Qrcode = null;
     let lastResultText = '';
     let scannerRunning = false;
+
+    if (navbarToggler && mainNavbar) {
+        navbarToggler.addEventListener('click', function () {
+            const isOpen = mainNavbar.classList.toggle('show');
+            navbarToggler.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+    }
 
     function getHistory() {
         try {
@@ -491,3 +500,5 @@
     renderHistory();
 </script>
 @endpush
+
+
