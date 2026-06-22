@@ -395,6 +395,7 @@
                     };
                     const cameras = await Html5Qrcode.getCameras();
                     if (!cameras || !cameras.length) throw new Error('No camera devices were found.');
+                    st('Camera Started', 'success');
                     const preferred = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[0];
                     await q.start(preferred.id, scanConfig, onScan)
                 } catch (e) {
