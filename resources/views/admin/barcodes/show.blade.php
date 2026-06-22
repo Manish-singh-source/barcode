@@ -60,28 +60,41 @@
 
         <div class="card border-0 shadow-sm rounded-4 mb-4">
             <div class="card-body p-4 p-xl-5">
-                <h3 class="h5 fw-bold mb-3">Barcode Data</h3>
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="text-secondary small mb-1">Unique Code</div>
-                        <div class="badge text-bg-dark font-monospace fs-6 px-3 py-2">{{ $barcode->unique_code }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-secondary small mb-1">Format</div>
-                        <div><span class="badge text-bg-{{ $formatClass }}">{{ $formatValue }}</span></div>
-                    </div>
-                    <div class="col-12">
-                        <div class="text-secondary small mb-1">Raw Barcode Content</div>
-                        <pre class="p-3 bg-light rounded-3 mb-0 text-break" style="white-space: pre-wrap; word-break: break-word;">{{ \App\Models\BarcodeGeneration::normalizeText($barcode->barcode_data) }}</pre>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-secondary small mb-1">Created At</div>
-                        <div>{{ optional($barcode->created_at)->format('Y-m-d H:i') }}</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="text-secondary small mb-1">Updated At</div>
-                        <div>{{ optional($barcode->updated_at)->format('Y-m-d H:i') }}</div>
-                    </div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <h3 class="h5 fw-bold mb-0">Barcode Data</h3>
+                </div>
+
+                <div class="table-responsive">
+                    <table id="barcodeDetailsTable" class="table table-striped table-hover align-middle mb-0 w-100">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 30%">Field</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-secondary fw-semibold">Unique Code</td>
+                                <td><span class="badge text-bg-dark font-monospace fs-6 px-3 py-2">{{ $barcode->unique_code }}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-secondary fw-semibold">Format</td>
+                                <td><span class="badge text-bg-{{ $formatClass }}">{{ $formatValue }}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-secondary fw-semibold">Raw Barcode Content</td>
+                                <td><span class="text-break">{{ \App\Models\BarcodeGeneration::normalizeText($barcode->barcode_data) }}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="text-secondary fw-semibold">Created At</td>
+                                <td>{{ optional($barcode->created_at)->format('Y-m-d H:i') }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-secondary fw-semibold">Updated At</td>
+                                <td>{{ optional($barcode->updated_at)->format('Y-m-d H:i') }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -278,6 +291,7 @@
                 }
             });
         });
+
 
         function triggerDownload(href, filename) {
             const link = document.createElement('a');

@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -24,7 +24,7 @@
             <div class="alert alert-light border mb-0">No barcode records found.</div>
         @else
             <div class="table-responsive">
-                <table class="table table-striped table-hover align-middle mb-0">
+                <table id="barcodesListTable" class="table table-striped table-hover align-middle mb-0 w-100">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
@@ -132,6 +132,7 @@
 @endsection
 
 @push('styles')
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css">
 <style>
     .font-monospace {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
@@ -144,6 +145,9 @@
 @endpush
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
 <script>
     (function () {
         const editModalEl = document.getElementById('editBarcodeModal');
@@ -151,6 +155,17 @@
         const editBarcodeForm = document.getElementById('editBarcodeForm');
         const deleteBarcodeForm = document.getElementById('deleteBarcodeForm');
         const editBarcodeData = document.getElementById('editBarcodeData');
+
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.DataTable) {
+            window.jQuery('#barcodesListTable').DataTable({
+                pageLength: 10,
+                lengthChange: false,
+                searching: true,
+                info: true,
+                ordering: true,
+                autoWidth: false
+            });
+        }
         const body = document.body;
         let activeBackdrop = null;
 
