@@ -84,9 +84,9 @@
 
         .scanner-reader {
             width: 100%;
-            aspect-ratio: 9 / 16;
-            min-height: 420px;
-            max-height: 78vh;
+            aspect-ratio: 16 / 9;
+            min-height: 280px;
+            max-height: 60vh;
             border-radius: 1rem;
             overflow: hidden;
             background: #0f172a;
@@ -194,7 +194,7 @@
             }
 
             .scanner-reader {
-                min-height: 250px
+                min-height: 220px
             }
         }
     </style>
@@ -348,10 +348,10 @@
                     const scanConfig = {
                         fps: 8,
                         qrbox: {
-                            width: 180,
-                            height: 250
+                            width: 250,
+                            height: 180
                         },
-                        aspectRatio: 0.5625,
+                        aspectRatio: 1.777,
                         disableFlip: true
                     };
                     const onScan = async (decoded) => {
