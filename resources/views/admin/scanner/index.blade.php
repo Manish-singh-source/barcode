@@ -329,16 +329,19 @@
                     if (p.data && p.data.valid) {
                         st('Barcode found.', 'success');
                         render(p.data);
-                        push(u, text, true)
+                        push(u, text, true);
+                        return true
                     } else {
                         notFound(u);
                         st(p.message || 'Invalid barcode - no product found.', 'danger');
-                        push(u, text, false)
+                        push(u, text, false);
+                        return false
                     }
                 } catch (e) {
                     notFound(u);
                     st('Something went wrong while looking up the barcode.', 'danger');
-                    push(u, text, false)
+                    push(u, text, false);
+                    return false
                 }
             };
             const startScan = async () => {
@@ -369,9 +372,11 @@
                         last = u;
                         man.value = u;
                         try {
-                            await stopScan(true);
-                            setSuccessState('Barcode scanned successfully.');
-                            await lookup(u)
+                            const found = await lookup(u);
+                            if (found) {
+                                await stopScan(true);
+                                setSuccessState('Barcode scanned successfully.');
+                            }
                         } finally {
                             window.setTimeout(() => {
                                 last = ''
