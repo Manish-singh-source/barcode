@@ -37,8 +37,8 @@
                             <label for="barcodeFormat" class="form-label fw-semibold">Barcode Format</label>
                             <select id="barcodeFormat" class="form-select form-select-lg">
                                 <option value="code128" selected>Code 128 - Default</option>
-                                <option value="code39">Code 39</option>
-                                <option value="ean13">EAN-13</option>
+                                {{-- <option value="code39">Code 39</option> --}}
+                                {{-- <option value="ean13">EAN-13</option> --}}
                             </select>
                         </div>
 
@@ -434,3 +434,4 @@
         })();
     </script>
 @endpush
+
