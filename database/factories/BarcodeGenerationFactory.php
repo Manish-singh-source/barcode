@@ -24,9 +24,10 @@ class BarcodeGenerationFactory extends Factory
             'barcode_format' => BarcodeFormat::Code128,
             'barcode_data' => fake()->bothify('DATA-########'),
             'barcode_image_path' => null,
-            'public_url' => url('/b/' . $uniqueCode),
+            'public_url' => url('/' . $uniqueCode),
             'custom_label' => fake()->optional()->words(2, true),
             'is_active' => true,
         ];
     }
 }
+

@@ -40,7 +40,7 @@ class BarcodeWebController extends Controller
             ->where('unique_code', $unique_code)
             ->firstOrFail();
 
-        $shortHost = parse_url(config('barcode.short_url_base', 'https://bc'), PHP_URL_HOST);
+        $shortHost = parse_url(config('barcode.short_url_base', 'https://bc1.in'), PHP_URL_HOST);
 
         if ($shortHost && strcasecmp($request->getHost(), $shortHost) === 0) {
             $longBase = rtrim((string) config('app.url', 'https://wpnc.online'), '/');
@@ -110,4 +110,3 @@ class BarcodeWebController extends Controller
         return $generator->getBarcode($payload, $type, 3, 100);
     }
 }
-

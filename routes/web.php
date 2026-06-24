@@ -8,6 +8,16 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ScannerController;
 use Illuminate\Support\Facades\Route;
 
+$shortHost = parse_url(config('barcode.short_url_base', 'https://bc1.in'), PHP_URL_HOST);
+
+if ($shortHost) {
+    Route::domain($shortHost)->group(function (): void {
+        Route::get('/{unique_code}', [BarcodeWebController::class, 'publicShow'])
+            ->where('unique_code', '[A-Za-z0-9]+')
+            ->name('barcodes.short-public-show');
+    });
+}
+
 Route::get('/', [LandingController::class, 'index'])->name('landing.index');
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
