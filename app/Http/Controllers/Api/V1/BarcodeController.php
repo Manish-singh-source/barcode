@@ -201,8 +201,10 @@ class BarcodeController extends Controller
 
     private function generateUniqueCode(): string
     {
+        $appUrl = rtrim((string) config('app.url'), '/');
+
         do {
-            $code = 'BC' . strtoupper(uniqid());
+            $code = $appUrl . '/scan' . '/BC' . strtoupper(uniqid());
         } while (BarcodeGeneration::query()->where('unique_code', $code)->exists());
 
         return $code;
