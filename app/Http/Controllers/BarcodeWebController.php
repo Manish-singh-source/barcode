@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BarcodeGeneration;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Picqer\Barcode\BarcodeGeneratorSVG;
@@ -33,12 +33,20 @@ class BarcodeWebController extends Controller
         return view('admin.barcodes.show', compact('barcode'));
     }
 
-    public function publicShow(string $unique_code): View
+    public function publicShow(Request $request, string $unique_code): View|RedirectResponse
     {
         $barcode = BarcodeGeneration::query()
             ->with('user')
             ->where('unique_code', $unique_code)
             ->firstOrFail();
+
+        $shortHost = parse_url(config('barcode.short_url_base', 'https://bc'), PHP_URL_HOST);
+
+        if ($shortHost && strcasecmp($request->getHost(), $shortHost) === 0) {
+            $longBase = rtrim((string) config('app.url', 'https://wpnc.online'), '/');
+
+            return redirect()->away($longBase . '/b/' . $unique_code);
+        }
 
         return view('public.barcode-show', compact('barcode'));
     }
@@ -102,3 +110,4 @@ class BarcodeWebController extends Controller
         return $generator->getBarcode($payload, $type, 3, 100);
     }
 }
+
