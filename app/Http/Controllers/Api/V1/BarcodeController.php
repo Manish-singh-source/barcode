@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Picqer\Barcode\BarcodeGeneratorPNG;
 use Picqer\Barcode\BarcodeGeneratorSVG;
 
@@ -162,7 +163,9 @@ class BarcodeController extends Controller
             'barcode_image_base64' => base64_encode($pngBinary),
             'barcode_svg' => $svgMarkup,
             'barcode_image_url' => Storage::disk('public')->url($barcodePath),
+            'public_url' => route('barcodes.public-show', $barcode->unique_code),
             'custom_label' => $barcode->custom_label,
+            'barcode_data' => $barcode->barcode_data,
             'created_at' => $barcode->created_at?->toISOString(),
         ], 'Barcode generated successfully.', 201);
     }
@@ -202,7 +205,7 @@ class BarcodeController extends Controller
     private function generateUniqueCode(): string
     {
         do {
-            $code = 'BC' . strtoupper(uniqid());
+            $code = 'BC' . strtoupper(Str::random(8));
         } while (BarcodeGeneration::query()->where('unique_code', $code)->exists());
 
         return $code;

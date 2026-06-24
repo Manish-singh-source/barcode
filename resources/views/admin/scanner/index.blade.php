@@ -303,6 +303,8 @@
                     rows = [
                         ['Unique Code', d.unique_code],
                         ['Barcode Format', d.barcode_format || 'N/A'],
+                        ['Barcode Data', d.barcode_data || 'N/A'],
+                        ['Public Link', d.public_url || 'N/A'],
                         ['Product Name', p.name || 'N/A'],
                         ['Scanned At', d.scanned_at ? new Date(d.scanned_at).toLocaleString() : new Date()
                             .toLocaleString()

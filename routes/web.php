@@ -19,3 +19,4 @@ Route::put('/barcodes/{id}', [BarcodeWebController::class, 'update'])->whereNumb
 Route::delete('/barcodes/{id}', [BarcodeWebController::class, 'destroy'])->whereNumber('id')->name('barcodes.destroy');
 Route::get('/barcodes/{id}', [BarcodeWebController::class, 'show'])->whereNumber('id')->name('barcodes.show');
 Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner.index');
+Route::get('/b/{unique_code}', [BarcodeWebController::class, 'publicShow'])->name('barcodes.public-show');

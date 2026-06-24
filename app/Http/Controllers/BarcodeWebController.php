@@ -33,6 +33,16 @@ class BarcodeWebController extends Controller
         return view('admin.barcodes.show', compact('barcode'));
     }
 
+    public function publicShow(string $unique_code): View
+    {
+        $barcode = BarcodeGeneration::query()
+            ->with('user')
+            ->where('unique_code', $unique_code)
+            ->firstOrFail();
+
+        return view('public.barcode-show', compact('barcode'));
+    }
+
     public function update(Request $request, int $id)
     {
         $validated = $request->validate([
