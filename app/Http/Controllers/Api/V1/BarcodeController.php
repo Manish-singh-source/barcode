@@ -231,7 +231,7 @@ class BarcodeController extends Controller
             return $payload;
         }
 
-        return $uniqueCode;
+        return route('barcodes.public-show', $uniqueCode);
     }
 
     /**
@@ -272,3 +272,5 @@ class BarcodeController extends Controller
         return addcslashes($value, '\\%_');
     }
 }
+
+

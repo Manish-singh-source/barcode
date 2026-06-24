@@ -80,6 +80,7 @@
                         <div class="mt-4 text-center">
                             <div id="humanReadableText" class="fs-5 fw-semibold mb-2"></div>
                             <div id="uniqueCodeDisplay" class="text-secondary d-none"></div>
+                            <div id="publicUrlDisplay" class="small text-secondary mt-1 d-none"></div>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 justify-content-center mt-4">
@@ -139,6 +140,7 @@
             const barcodePreview = document.getElementById('barcodePreview');
             const humanReadableText = document.getElementById('humanReadableText');
             const uniqueCodeDisplay = document.getElementById('uniqueCodeDisplay');
+            const publicUrlDisplay = document.getElementById('publicUrlDisplay');
             const downloadPng = document.getElementById('downloadPng');
             const downloadSvg = document.getElementById('downloadSvg');
             const printBarcode = document.getElementById('printBarcode');
@@ -149,6 +151,7 @@
             let currentPngBase64 = '';
             let currentSvg = '';
             let currentUniqueCode = '';
+            let currentPublicUrl = '';
 
             function setError(message) {
                 if (!message) {
@@ -182,6 +185,8 @@
                 humanReadableText.textContent = '';
                 uniqueCodeDisplay.classList.add('d-none');
                 uniqueCodeDisplay.textContent = '';
+                publicUrlDisplay.classList.add('d-none');
+                publicUrlDisplay.textContent = '';
                 downloadPng.classList.add('d-none');
                 downloadSvg.classList.add('d-none');
                 printBarcode.classList.add('d-none');
@@ -195,6 +200,7 @@
                 currentPngBase64 = response.barcode_image_base64 || '';
                 currentSvg = response.barcode_svg || '';
                 currentUniqueCode = response.unique_code || '';
+                currentPublicUrl = response.public_url || '';
 
                 previewCard.classList.add('is-ready');
                 previewSkeleton.classList.add('d-none');
@@ -205,6 +211,10 @@
                 humanReadableText.textContent = response.custom_label || response.unique_code || '';
                 uniqueCodeDisplay.textContent = 'Unique Code: ' + currentUniqueCode;
                 uniqueCodeDisplay.classList.remove('d-none');
+                if (currentPublicUrl) {
+                    publicUrlDisplay.innerHTML = '<a href="' + currentPublicUrl + '" target="_blank" rel="noopener" class="text-break">' + currentPublicUrl + '</a>';
+                    publicUrlDisplay.classList.remove('d-none');
+                }
                 downloadPng.classList.remove('d-none');
                 downloadSvg.classList.remove('d-none');
                 printBarcode.classList.remove('d-none');
@@ -434,4 +444,5 @@
         })();
     </script>
 @endpush
+
 

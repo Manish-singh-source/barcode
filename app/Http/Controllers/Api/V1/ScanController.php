@@ -62,8 +62,10 @@ class ScanController extends Controller
 
     private function scanByCode(string $uniqueCode, Request $request): JsonResponse
     {
+        $normalizedCode = $this->normalizeScannedCode($uniqueCode);
+
         $barcode = BarcodeGeneration::query()
-            ->where('unique_code', $uniqueCode)
+            ->where('unique_code', $normalizedCode)
             ->first();
 
         if (! $barcode) {
@@ -93,6 +95,25 @@ class ScanController extends Controller
             'product' => $snapshot['product'],
             'scanned_at' => now()->toISOString(),
         ], 'Barcode scanned successfully.');
+    }
+
+    private function normalizeScannedCode(string $value): string
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return $value;
+        }
+
+        if (preg_match('~^https?://[^/]+/b/([A-Za-z0-9]+)$~i', $value, $matches)) {
+            return $matches[1];
+        }
+
+        if (preg_match('~^/b/([A-Za-z0-9]+)$~i', $value, $matches)) {
+            return $matches[1];
+        }
+
+        return $value;
     }
 
     private function logScan(Request $request, string $uniqueCode, ?int $barcodeGenerationId, ScanResult $result, ?array $snapshot): void
