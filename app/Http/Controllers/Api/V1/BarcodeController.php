@@ -201,14 +201,23 @@ class BarcodeController extends Controller
 
     private function generateUniqueCode(): string
     {
-        $appUrl = rtrim((string) config('app.url'), '/');
-
         do {
-            $code = $appUrl . '/scan' . '/BC' . strtoupper(uniqid());
+            $code = 'BC' . strtoupper(uniqid());
         } while (BarcodeGeneration::query()->where('unique_code', $code)->exists());
 
         return $code;
     }
+
+    // private function generateUniqueCode(): string
+    // {
+    //     $appUrl = rtrim((string) config('app.url'), '/');
+
+    //     do {
+    //         $code = $appUrl . '/scan' . '/BC' . strtoupper(uniqid());
+    //     } while (BarcodeGeneration::query()->where('unique_code', $code)->exists());
+
+    //     return $code;
+    // }
 
     private function resolveBarcodePayload(string $uniqueCode, string $format, string $barcodeData): string
     {
