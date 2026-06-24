@@ -30,6 +30,7 @@ class BarcodeGeneration extends Model
         'barcode_format',
         'barcode_data',
         'barcode_image_path',
+        'public_url',
         'custom_label',
         'is_active',
     ];
@@ -110,3 +111,4 @@ class BarcodeGeneration extends Model
         ];
     }
 }
+

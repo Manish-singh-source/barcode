@@ -20,7 +20,8 @@ Route::prefix('auth')->group(function (): void {
 
 Route::post('/scan', [ApiScanController::class, 'scan']);
 Route::middleware('auth:sanctum')->get('/scan/history', [ApiScanController::class, 'history']);
-Route::get('/scan/{unique_code}', [ApiScanController::class, 'scanByGet']);
+Route::get('/scan/{unique_code}', [ApiScanController::class, 'scanByGet'])
+    ->where('unique_code', '.*');
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/barcodes', [ApiBarcodeController::class, 'index']);

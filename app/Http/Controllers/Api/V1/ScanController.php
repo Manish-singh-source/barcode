@@ -89,7 +89,7 @@ class ScanController extends Controller
             'barcode_format' => $snapshot['barcode_format'],
             'custom_label' => $barcode->custom_label,
             'barcode_data' => $barcode->barcode_data,
-            'public_url' => route('barcodes.public-show', $barcode->unique_code),
+            'public_url' => $barcode->public_url ?? rtrim((string) config('app.url', 'https://wpnc.online'), '/') . '/b/' . $barcode->unique_code,
             'barcode_image_url' => $barcode->barcode_image_url,
             'product_name' => $snapshot['product']['name'] ?? $barcode->barcode_data,
             'product' => $snapshot['product'],
@@ -130,3 +130,6 @@ class ScanController extends Controller
         ]);
     }
 }
+
+
+

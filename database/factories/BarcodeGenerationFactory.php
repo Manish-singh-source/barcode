@@ -16,12 +16,15 @@ class BarcodeGenerationFactory extends Factory
 
     public function definition(): array
     {
+        $uniqueCode = fake()->unique()->bothify('BC-########');
+
         return [
             'user_id' => User::factory(),
-            'unique_code' => fake()->unique()->bothify('BC-########'),
+            'unique_code' => $uniqueCode,
             'barcode_format' => BarcodeFormat::Code128,
             'barcode_data' => fake()->bothify('DATA-########'),
             'barcode_image_path' => null,
+            'public_url' => url('/b/' . $uniqueCode),
             'custom_label' => fake()->optional()->words(2, true),
             'is_active' => true,
         ];

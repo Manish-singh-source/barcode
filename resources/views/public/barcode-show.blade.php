@@ -39,7 +39,7 @@
 
                         <div class="mb-4">
                             <div class="text-secondary small mb-1">Public Link</div>
-                            <a class="text-break" href="{{ url()->current() }}" target="_blank" rel="noopener">{{ url()->current() }}</a>
+                            <a class="text-break" href="{{ route('barcodes.public-show', $barcode->unique_code) }}" target="_blank" rel="noopener">{{ route('barcodes.public-show', $barcode->unique_code) }}</a>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2">
