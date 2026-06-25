@@ -69,21 +69,26 @@ class BarcodeGeneration extends Model
         return self::normalizeText($this->barcode_data);
     }
 
+    public static function publicUrlForCode(string $uniqueCode): string
+    {
+        return rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/b/' . $uniqueCode;
+    }
+
     public function getPublicUrlAttribute($value): string
     {
         $base = rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/');
 
         if (is_string($value) && $value !== '') {
-            if (preg_match('~^https?://[^/]+/([A-Za-z0-9]+)~i', $value, $matches)) {
-                return $base . '/' . $matches[1];
+            if (preg_match('~^https?://[^/]+/(?:b/)?([A-Za-z0-9]+)$~i', $value, $matches)) {
+                return $base . '/b/' . $matches[1];
             }
 
-            if (str_starts_with($value, $base . '/')) {
+            if (str_starts_with($value, $base . '/b/')) {
                 return $value;
             }
         }
 
-        return $base . '/' . $this->unique_code;
+        return $base . '/b/' . $this->unique_code;
     }
 
     /**
@@ -128,6 +133,8 @@ class BarcodeGeneration extends Model
         ];
     }
 }
+
+
 
 
 

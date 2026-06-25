@@ -89,7 +89,7 @@ class ScanController extends Controller
             'barcode_format' => $snapshot['barcode_format'],
             'custom_label' => $barcode->custom_label,
             'barcode_data' => $barcode->barcode_data,
-            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $barcode->unique_code,
+            'public_url' => $barcode->public_url ?? BarcodeGeneration::publicUrlForCode($barcode->unique_code),
             'barcode_image_url' => $barcode->barcode_image_url,
             'product_name' => $snapshot['product']['name'] ?? $barcode->barcode_data,
             'product' => $snapshot['product'],
@@ -105,11 +105,11 @@ class ScanController extends Controller
             return $value;
         }
 
-        if (preg_match('~^https?://[^/]+/([A-Za-z0-9]+)$~i', $value, $matches)) {
+        if (preg_match('~^https?://[^/]+/(?:b/)?([A-Za-z0-9]+)$~i', $value, $matches)) {
             return $matches[1];
         }
 
-        if (preg_match('~^/([A-Za-z0-9]+)$~i', $value, $matches)) {
+        if (preg_match('~^/(?:b/)?([A-Za-z0-9]+)$~i', $value, $matches)) {
             return $matches[1];
         }
 
@@ -130,6 +130,9 @@ class ScanController extends Controller
         ]);
     }
 }
+
+
+
 
 
 

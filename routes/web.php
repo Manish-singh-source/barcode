@@ -12,9 +12,13 @@ $shortHost = parse_url(config('barcode.short_url_base', 'https://wpc.bar'), PHP_
 
 if ($shortHost) {
     Route::domain($shortHost)->group(function (): void {
-        Route::get('/{unique_code}', [BarcodeWebController::class, 'publicShow'])
+        Route::get('/b/{unique_code}', [BarcodeWebController::class, 'publicShow'])
             ->where('unique_code', '[A-Za-z0-9]+')
             ->name('barcodes.short-public-show');
+
+        Route::get('/{unique_code}', [BarcodeWebController::class, 'publicShow'])
+            ->where('unique_code', '[A-Za-z0-9]+')
+            ->name('barcodes.short-public-show-legacy');
     });
 }
 
@@ -30,4 +34,5 @@ Route::delete('/barcodes/{id}', [BarcodeWebController::class, 'destroy'])->where
 Route::get('/barcodes/{id}', [BarcodeWebController::class, 'show'])->whereNumber('id')->name('barcodes.show');
 Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner.index');
 Route::get('/b/{unique_code}', [BarcodeWebController::class, 'publicShow'])->name('barcodes.public-show');
+
 
