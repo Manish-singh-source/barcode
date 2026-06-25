@@ -41,11 +41,12 @@ class BarcodeWebController extends Controller
             ->firstOrFail();
 
         $shortHost = parse_url(config('barcode.short_url_base', 'https://wpc.bar'), PHP_URL_HOST);
+        $shortBase = rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/');
+        $isShortHostRequest = $shortHost && strcasecmp($request->getHost(), $shortHost) === 0;
+        $isPrefixedPublicPath = preg_match('~^b/[A-Za-z0-9]+$~i', trim($request->path(), '/')) === 1;
 
-        if ($shortHost && strcasecmp($request->getHost(), $shortHost) === 0) {
-            $longBase = rtrim((string) config('app.url', 'https://wpc.bar'), '/');
-
-            return redirect()->away($longBase . '/b/' . $unique_code);
+        if ($isShortHostRequest && ! $isPrefixedPublicPath) {
+            return redirect()->away($shortBase . '/b/' . $unique_code);
         }
 
         return view('public.barcode-show', compact('barcode'));
@@ -110,4 +111,5 @@ class BarcodeWebController extends Controller
         return $generator->getBarcode($payload, $type, 3, 100);
     }
 }
+
 

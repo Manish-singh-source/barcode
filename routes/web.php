@@ -16,9 +16,6 @@ if ($shortHost) {
             ->where('unique_code', '[A-Za-z0-9]+')
             ->name('barcodes.short-public-show');
 
-        Route::get('/{unique_code}', [BarcodeWebController::class, 'publicShow'])
-            ->where('unique_code', '[A-Za-z0-9]+')
-            ->name('barcodes.short-public-show-legacy');
     });
 }
 
