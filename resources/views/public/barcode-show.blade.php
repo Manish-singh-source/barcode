@@ -48,7 +48,7 @@
                         </div> --}}
                     </div>
                 </div>
-                <div class="text-center text-secondary small mt-3">Scan result from the barcode_generations table</div>
+                {{-- <div class="text-center text-secondary small mt-3">Scan result from the barcode_generations table</div> --}}
             </div>
         </div>
     </div>
