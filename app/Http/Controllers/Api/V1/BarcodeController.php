@@ -62,7 +62,7 @@ class BarcodeController extends Controller
                 'id' => $barcode->id,
                 'row_number' => $start + $index + 1,
                 'unique_code' => $barcode->unique_code,
-            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://bc'), '/') . '/' . $barcode->unique_code,
+            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $barcode->unique_code,
                 'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
                 'custom_label' => $barcode->custom_label,
                 'barcode_data' => $barcode->barcode_data,
@@ -94,7 +94,7 @@ class BarcodeController extends Controller
         return $this->successResponse([
             'id' => $barcode->id,
             'unique_code' => $barcode->unique_code,
-            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://bc'), '/') . '/' . $barcode->unique_code,
+            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $barcode->unique_code,
             'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
             'barcode_data' => $barcode->barcode_data,
             'custom_label' => $barcode->custom_label,
@@ -155,14 +155,14 @@ class BarcodeController extends Controller
             'barcode_format' => $format,
             'barcode_data' => $validated['barcode_data'],
             'barcode_image_path' => $barcodePath,
-            'public_url' => rtrim((string) config('barcode.short_url_base', 'https://bc'), '/') . '/' . $uniqueCode,
+            'public_url' => rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $uniqueCode,
             'custom_label' => $validated['custom_label'] ?? null,
             'is_active' => true,
         ]);
 
         return $this->successResponse([
             'unique_code' => $barcode->unique_code,
-            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://bc'), '/') . '/' . $barcode->unique_code,
+            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $barcode->unique_code,
             'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
             'barcode_image_base64' => base64_encode($pngBinary),
             'barcode_svg' => $svgMarkup,
@@ -188,7 +188,7 @@ class BarcodeController extends Controller
         return $this->successResponse([
             'id' => $barcode->id,
             'unique_code' => $barcode->unique_code,
-            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://bc'), '/') . '/' . $barcode->unique_code,
+            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $barcode->unique_code,
             'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
             'custom_label' => $barcode->custom_label,
             'barcode_data' => $barcode->barcode_data,
@@ -236,7 +236,7 @@ class BarcodeController extends Controller
             return $payload;
         }
 
-        return rtrim((string) config('barcode.short_url_base', 'https://bc'), '/') . '/' . $uniqueCode;
+        return rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $uniqueCode;
     }
 
     /**
@@ -248,8 +248,8 @@ class BarcodeController extends Controller
         $svgGenerator = new BarcodeGeneratorSVG();
         $type = $this->mapFormatToPicqerType($format);
 
-        $png = $pngGenerator->getBarcode($payload, $type, 3, 100);
-        $svg = $svgGenerator->getBarcode($payload, $type, 3, 100);
+        $png = $pngGenerator->getBarcode($payload, $type, 4, 120);
+        $svg = $svgGenerator->getBarcode($payload, $type, 4, 120);
 
         return [$png, $svg];
     }
@@ -277,6 +277,9 @@ class BarcodeController extends Controller
         return addcslashes($value, '\\%_');
     }
 }
+
+
+
 
 
 

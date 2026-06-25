@@ -366,14 +366,21 @@
                     run = true;
                     setActive(true);
                     st('Requesting camera access...', 'secondary');
+                    const supportedFormats = window.Html5QrcodeSupportedFormats || {};
                     const scanConfig = {
                         fps: 8,
                         qrbox: {
-                            width: 250,
-                            height: 180
+                            width: 320,
+                            height: 220
                         },
                         aspectRatio: 1.777,
-                        disableFlip: true
+                        disableFlip: true,
+                        formatsToSupport: [
+                            supportedFormats.QR_CODE,
+                            supportedFormats.CODE_128,
+                            supportedFormats.CODE_39,
+                            supportedFormats.EAN_13,
+                        ].filter(Boolean)
                     };
                     const onScan = async (decoded) => {
                         const u = (decoded || '').trim();
@@ -474,3 +481,4 @@
         })();
     </script>
 @endpush
+

@@ -8,7 +8,7 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\ScannerController;
 use Illuminate\Support\Facades\Route;
 
-$shortHost = parse_url(config('barcode.short_url_base', 'https://bc1.in'), PHP_URL_HOST);
+$shortHost = parse_url(config('barcode.short_url_base', 'https://wpc.bar'), PHP_URL_HOST);
 
 if ($shortHost) {
     Route::domain($shortHost)->group(function (): void {
@@ -30,3 +30,4 @@ Route::delete('/barcodes/{id}', [BarcodeWebController::class, 'destroy'])->where
 Route::get('/barcodes/{id}', [BarcodeWebController::class, 'show'])->whereNumber('id')->name('barcodes.show');
 Route::get('/scanner', [ScannerController::class, 'index'])->name('scanner.index');
 Route::get('/b/{unique_code}', [BarcodeWebController::class, 'publicShow'])->name('barcodes.public-show');
+

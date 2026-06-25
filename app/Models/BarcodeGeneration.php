@@ -69,6 +69,23 @@ class BarcodeGeneration extends Model
         return self::normalizeText($this->barcode_data);
     }
 
+    public function getPublicUrlAttribute($value): string
+    {
+        $base = rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/');
+
+        if (is_string($value) && $value !== '') {
+            if (preg_match('~^https?://[^/]+/([A-Za-z0-9]+)~i', $value, $matches)) {
+                return $base . '/' . $matches[1];
+            }
+
+            if (str_starts_with($value, $base . '/')) {
+                return $value;
+            }
+        }
+
+        return $base . '/' . $this->unique_code;
+    }
+
     /**
      * Build a product-like snapshot from barcode_data so the app can work
      * without any linked product table.
@@ -111,4 +128,7 @@ class BarcodeGeneration extends Model
         ];
     }
 }
+
+
+
 
