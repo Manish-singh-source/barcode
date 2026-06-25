@@ -42,10 +42,10 @@
                             <a class="text-break" href="{{ route('barcodes.public-show', $barcode->unique_code) }}" target="_blank" rel="noopener">{{ route('barcodes.public-show', $barcode->unique_code) }}</a>
                         </div>
 
-                        <div class="d-flex flex-wrap gap-2">
+                        {{-- <div class="d-flex flex-wrap gap-2">
                             <a href="{{ url()->previous() }}" class="btn btn-outline-secondary">Go Back</a>
                             <button type="button" class="btn btn-primary" onclick="window.print()">Print</button>
-                        </div>
+                        </div> --}}
                     </div>
                 </div>
                 <div class="text-center text-secondary small mt-3">Scan result from the barcode_generations table</div>

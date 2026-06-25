@@ -116,20 +116,14 @@
                 <div id="scannerSuccessBanner" class="alert alert-success d-none mt-3 mb-0 scanner-success-banner">Barcode
                     scanned successfully.</div>
 
-                <div id="resultCard" class="mt-4 d-none">
-                    <div class="result-card rounded-4 p-3 p-md-4">
-                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                            <div>
-                                <div class="result-kicker">Scan Result</div>
-                                <h3 class="result-title mb-0">Product Details</h3>
-                            </div>
-                            <button type="button" id="copyAllBtn" class="btn btn-sm landing-btn-outline">Copy</button>
-                        </div>
-                        <div id="resultBorder" class="border-start border-4 border-success p-3 rounded-4 bg-white">
-                            <div id="invalidAlert" class="alert alert-danger d-none">Invalid barcode - no product found
-                            </div>
-                            <div id="resultRows" class="vstack gap-2"></div>
-                        </div>
+                <div id="resultCard" class="card border-0 shadow-sm rounded-4 mt-4 d-none">
+                    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center py-3 px-4 px-xl-5">
+                        <h2 class="h5 fw-bold mb-0">Scan Result</h2>
+                        <button type="button" id="copyAllBtn" class="btn btn-sm btn-outline-dark">Copy All</button>
+                    </div>
+                    <div id="resultBorder" class="card-body p-4 p-xl-5 border-start border-4 border-success">
+                        <div id="invalidAlert" class="alert alert-danger d-none">Invalid barcode - no product found</div>
+                        <div id="resultRows" class="vstack gap-2"></div>
                     </div>
                 </div>
 
@@ -642,23 +636,12 @@
             box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.12);
         }
 
-        .result-card {
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 255, 0.84));
-            border: 1px solid rgba(99, 102, 241, 0.12);
+        #resultBorder.is-success {
+            border-color: #198754 !important;
         }
 
-        .result-kicker {
-            color: #6366f1;
-            font-size: 0.85rem;
-            font-weight: 800;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-
-        .result-title {
-            color: #1f2452;
-            font-weight: 800;
-            letter-spacing: -0.03em;
+        #resultBorder.is-danger {
+            border-color: #dc3545 !important;
         }
 
         #result-content>div:last-child {
@@ -871,23 +854,29 @@
                 });
             }
 
-                        function renderResult(data) {
+
+            function renderResult(data) {
                 const product = data.product || {};
+                const publicUrl = data.public_url || '';
                 const rows = [
                     ['Unique Code', data.unique_code],
                     ['Barcode Format', data.barcode_format || 'N/A'],
-                    ['Public Link', data.public_url || 'N/A'],
+                    ['Barcode Data', data.barcode_data || 'N/A'],
+                    ['Public Link', publicUrl ? `<a href="${publicUrl}" target="_blank" rel="noopener" class="text-break">${publicUrl}</a>` : 'N/A'],
                     ['Product Name', product.name || 'N/A'],
                     ['Scanned At', data.scanned_at ? new Date(data.scanned_at).toLocaleString() : new Date().toLocaleString()],
                 ];
-                lastScannedCode = data.public_url || data.unique_code || '';
-                lastResultText = rows.map(function(pair) { return pair[0] + ': ' + pair[1]; }).join('\n');
+                lastScannedCode = publicUrl || data.unique_code || '';
+                lastResultText = rows.map(function(pair) {
+                    const value = typeof pair[1] === 'string' ? pair[1].replace(/<[^>]*>/g, '') : pair[1];
+                    return pair[0] + ': ' + value;
+                }).join('\n');
                 resultRows.innerHTML = rows.map(function(pair) {
                     return '<div class="d-flex justify-content-between gap-3 border-bottom pb-2"><span class="text-secondary">' + pair[0] + '</span><span class="fw-semibold text-end">' + (pair[1] ?? 'N/A') + '</span></div>';
                 }).join('');
                 resultCard.classList.remove('d-none');
-                resultBorder.classList.remove('border-danger');
-                resultBorder.classList.add('border-success');
+                resultBorder.classList.remove('is-danger');
+                resultBorder.classList.add('is-success');
                 invalidAlert.classList.add('d-none');
             }
 
@@ -897,8 +886,8 @@
                 resultCard.classList.remove('d-none');
                 resultRows.innerHTML = '';
                 invalidAlert.classList.remove('d-none');
-                resultBorder.classList.remove('border-success');
-                resultBorder.classList.add('border-danger');
+                resultBorder.classList.remove('is-success');
+                resultBorder.classList.add('is-danger');
             }
 
             async function lookupBarcode(uniqueCode) {
@@ -1172,6 +1161,9 @@
         })();
     </script>
 @endpush
+
+
+
 
 
 
