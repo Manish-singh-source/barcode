@@ -229,7 +229,13 @@
                 prog = false,
                 last = '',
                 text = '',
-                flash = null;
+                flash = null,
+                nativeStream = null,
+                nativeVideo = null,
+                nativeDetector = null,
+                nativeFrameId = null,
+                nativeActive = false;
+
             const hist = () => {
                 try {
                     return JSON.parse(localStorage.getItem(h) || '[]')
@@ -307,9 +313,7 @@
                         ['Barcode Data', d.barcode_data || 'N/A'],
                         ['Public Link', publicUrl ? `<a href="${publicUrl}" target="_blank" rel="noopener" class="text-break">${publicUrl}</a>` : 'N/A'],
                         ['Product Name', p.name || 'N/A'],
-                        ['Scanned At', d.scanned_at ? new Date(d.scanned_at).toLocaleString() : new Date()
-                            .toLocaleString()
-                        ]
+                        ['Scanned At', d.scanned_at ? new Date(d.scanned_at).toLocaleString() : new Date().toLocaleString()]
                     ];
                 text = rows.map(([l, v]) => `${l}: ${typeof v === 'string' ? v.replace(/<[^>]*>/g, '') : v}`).join('\n');
                 rr.innerHTML = rows.map(([l, v]) =>
@@ -326,7 +330,7 @@
                 const u = (code || '').trim();
                 if (!u) {
                     st('Enter a barcode value first.', 'warning');
-                    return
+                    return null
                 }
                 man.value = u;
                 st('Looking up barcode...', 'secondary');
@@ -341,87 +345,192 @@
                         st('Barcode found: ' + (p.data.public_url || u), 'success');
                         render(p.data);
                         push(u, text, true);
-                        return true
+                        return p.data
                     } else {
                         notFound(u);
                         st(p.message || 'Invalid barcode - no product found.', 'danger');
                         push(u, text, false);
-                        return false
+                        return null
                     }
                 } catch (e) {
                     notFound(u);
                     st('Something went wrong while looking up the barcode.', 'danger');
                     push(u, text, false);
-                    return false
+                    return null
                 }
+            };
+            const stopNativeScan = async () => {
+                nativeActive = false;
+                if (nativeFrameId) {
+                    cancelAnimationFrame(nativeFrameId);
+                    nativeFrameId = null
+                }
+                if (nativeVideo) {
+                    nativeVideo.pause();
+                    nativeVideo.srcObject = null
+                }
+                if (nativeStream) {
+                    nativeStream.getTracks().forEach(track => track.stop());
+                    nativeStream = null
+                }
+            };
+            const startNativeScan = async () => {
+                if (!('BarcodeDetector' in window) || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Native camera barcode scanning is not available in this browser.');
+                }
+
+                const formats = ['qr_code', 'code_128', 'code_39', 'ean_13'];
+                nativeDetector = new BarcodeDetector({ formats });
+                await stopNativeScan();
+                r.innerHTML = '';
+                nativeVideo = document.createElement('video');
+                nativeVideo.setAttribute('playsinline', 'true');
+                nativeVideo.setAttribute('muted', 'true');
+                nativeVideo.autoplay = true;
+                nativeVideo.className = 'w-100 h-100';
+                nativeVideo.style.objectFit = 'cover';
+                r.appendChild(nativeVideo);
+
+                nativeStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+
+                nativeVideo.srcObject = nativeStream;
+                await nativeVideo.play();
+                nativeActive = true;
+                st('Camera started. Point it at the barcode.', 'success');
+
+                const tick = async () => {
+                    if (!nativeActive) {
+                        return;
+                    }
+
+                    try {
+                        if (nativeVideo && nativeVideo.readyState >= 2) {
+                            const results = await nativeDetector.detect(nativeVideo);
+                            if (results && results.length) {
+                                const value = (results[0].rawValue || results[0].raw || '').trim();
+                                if (value && !prog && value !== last) {
+                                    prog = true;
+                                    last = value;
+                                    try {
+                                        const found = await lookup(value);
+                                        if (found) {
+                                            await stopScan(true);
+                                            setSuccessState((found.public_url || value) + ' scanned successfully.');
+                                        }
+                                    } finally {
+                                        window.setTimeout(() => {
+                                            last = ''
+                                        }, 1200);
+                                        prog = false
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // keep scanning on transient decode errors
+                    }
+
+                    nativeFrameId = requestAnimationFrame(tick);
+                };
+
+                nativeFrameId = requestAnimationFrame(tick);
+            };
+            const startHtml5Scan = async () => {
+                if (typeof Html5Qrcode === 'undefined') {
+                    throw new Error('Scanner library failed to load. Please refresh the page and try again.');
+                }
+                if (!q) q = new Html5Qrcode('scannerReader');
+                const supportedFormats = window.Html5QrcodeSupportedFormats || {};
+                const scanConfig = {
+                    fps: 8,
+                    qrbox: {
+                        width: 320,
+                        height: 220
+                    },
+                    aspectRatio: 1.777,
+                    disableFlip: true,
+                    formatsToSupport: [
+                        supportedFormats.QR_CODE,
+                        supportedFormats.CODE_128,
+                        supportedFormats.CODE_39,
+                        supportedFormats.EAN_13,
+                    ].filter(Boolean)
+                };
+
+                const onScan = async (decoded) => {
+                    const u = (decoded || '').trim();
+                    if (!u || prog || u === last) return;
+                    prog = true;
+                    last = u;
+                    man.value = u;
+                    try {
+                        const found = await lookup(u);
+                        if (found) {
+                            await stopScan(true);
+                            setActive(false);
+                            setSuccessState((found.public_url || u) + ' scanned successfully.');
+                        }
+                    } finally {
+                        window.setTimeout(() => {
+                            last = ''
+                        }, 1200);
+                        prog = false
+                    }
+                };
+
+                const cameras = await Html5Qrcode.getCameras();
+                if (!cameras || !cameras.length) throw new Error('No camera devices were found.');
+                r.innerHTML = '';
+                const preferred = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[0];
+                await q.start(preferred.id, scanConfig, onScan);
+                st('Camera started. Point it at the barcode.', 'success');
             };
             const startScan = async () => {
                 if (run) return;
-                if (typeof Html5Qrcode === 'undefined') {
-                    st('Scanner library failed to load. Please refresh the page and try again.', 'danger');
-                    return
-                }
-                if (!q) q = new Html5Qrcode('scannerReader');
                 try {
                     clearSuccessState();
                     run = true;
                     setActive(true);
                     st('Requesting camera access...', 'secondary');
-                    const supportedFormats = window.Html5QrcodeSupportedFormats || {};
-                    const scanConfig = {
-                        fps: 8,
-                        qrbox: {
-                            width: 320,
-                            height: 220
-                        },
-                        aspectRatio: 1.777,
-                        disableFlip: true,
-                        formatsToSupport: [
-                            supportedFormats.QR_CODE,
-                            supportedFormats.CODE_128,
-                            supportedFormats.CODE_39,
-                            supportedFormats.EAN_13,
-                        ].filter(Boolean)
-                    };
-                    const onScan = async (decoded) => {
-                        const u = (decoded || '').trim();
-                        if (!u || prog || u === last) return;
-                        prog = true;
-                        last = u;
-                        man.value = u;
+                    if ('BarcodeDetector' in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
                         try {
-                            const found = await lookup(u);
-                            if (found) {
-                                await stopScan(true);
-                                setActive(false);
-                                setSuccessState((p.data.public_url || u) + ' scanned successfully.');
-                            }
-                        } finally {
-                            window.setTimeout(() => {
-                                last = ''
-                            }, 1200);
-                            prog = false
+                            await startNativeScan();
+                            return;
+                        } catch (nativeError) {
+                            await stopNativeScan();
+                            nativeDetector = null;
                         }
-                    };
-                    const cameras = await Html5Qrcode.getCameras();
-                    if (!cameras || !cameras.length) throw new Error('No camera devices were found.');
-                    st('Camera Started', 'success');
-                    const preferred = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[0];
-                    await q.start(preferred.id, scanConfig, onScan)
+                    }
+                    await startHtml5Scan();
                 } catch (e) {
                     run = false;
                     setActive(false);
+                    await stopNativeScan();
+                    if (q) {
+                        try {
+                            await q.stop()
+                        } catch (err) {}
+                        q.clear().catch(() => {})
+                    }
                     st('Unable to start the scanner' + (e && e.message ? ': ' + e.message : ''), 'danger')
                 }
             };
             const stopScan = async (silent = false) => {
+                await stopNativeScan();
                 if (q && run) {
                     try {
                         await q.stop()
                     } catch (e) {}
-                    run = false;
                     q.clear().catch(() => {})
                 }
+                run = false;
                 setActive(false);
                 last = '';
                 if (!silent) st('Camera stopped.', 'secondary')
@@ -482,5 +591,7 @@
         })();
     </script>
 @endpush
+
+
 
 
