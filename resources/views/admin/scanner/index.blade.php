@@ -300,17 +300,18 @@
             };
             const render = d => {
                 const p = d.product || {},
+                    publicUrl = d.public_url || '',
                     rows = [
                         ['Unique Code', d.unique_code],
                         ['Barcode Format', d.barcode_format || 'N/A'],
                         ['Barcode Data', d.barcode_data || 'N/A'],
-                        ['Public Link', d.public_url || 'N/A'],
+                        ['Public Link', publicUrl ? `<a href="${publicUrl}" target="_blank" rel="noopener" class="text-break">${publicUrl}</a>` : 'N/A'],
                         ['Product Name', p.name || 'N/A'],
                         ['Scanned At', d.scanned_at ? new Date(d.scanned_at).toLocaleString() : new Date()
                             .toLocaleString()
                         ]
                     ];
-                text = rows.map(([l, v]) => `${l}: ${v}`).join('\n');
+                text = rows.map(([l, v]) => `${l}: ${typeof v === 'string' ? v.replace(/<[^>]*>/g, '') : v}`).join('\n');
                 rr.innerHTML = rows.map(([l, v]) =>
                     `<div class="d-flex justify-content-between gap-3 border-bottom pb-2"><span class="text-secondary">${l}</span><span class="fw-semibold text-end">${v??'N/A'}</span></div>`
                     ).join('');
@@ -337,7 +338,7 @@
                         }),
                         p = await res.json().catch(() => ({}));
                     if (p.data && p.data.valid) {
-                        st('Barcode found.', 'success');
+                        st('Barcode found: ' + (p.data.public_url || u), 'success');
                         render(p.data);
                         push(u, text, true);
                         return true
@@ -393,7 +394,7 @@
                             if (found) {
                                 await stopScan(true);
                                 setActive(false);
-                                setSuccessState('Barcode scanned successfully.');
+                                setSuccessState((p.data.public_url || u) + ' scanned successfully.');
                             }
                         } finally {
                             window.setTimeout(() => {
@@ -481,4 +482,5 @@
         })();
     </script>
 @endpush
+
 
