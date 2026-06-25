@@ -43,7 +43,7 @@ class BarcodeWebController extends Controller
         $shortHost = parse_url(config('barcode.short_url_base', 'https://wpc.bar'), PHP_URL_HOST);
 
         if ($shortHost && strcasecmp($request->getHost(), $shortHost) === 0) {
-            $longBase = rtrim((string) config('app.url', 'https://wpnc.online'), '/');
+            $longBase = rtrim((string) config('app.url', 'https://wpc.bar'), '/');
 
             return redirect()->away($longBase . '/b/' . $unique_code);
         }

@@ -155,14 +155,14 @@ class BarcodeController extends Controller
             'barcode_format' => $format,
             'barcode_data' => $validated['barcode_data'],
             'barcode_image_path' => $barcodePath,
-            'public_url' => rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $uniqueCode,
+            'public_url' => rtrim((string) 'https://wpc.bar/b/' . $uniqueCode),
             'custom_label' => $validated['custom_label'] ?? null,
             'is_active' => true,
         ]);
 
         return $this->successResponse([
             'unique_code' => $barcode->unique_code,
-            'public_url' => $barcode->public_url ?? rtrim((string) config('barcode.short_url_base', 'https://wpc.bar'), '/') . '/' . $barcode->unique_code,
+            'public_url' => $barcode->public_url ?? rtrim((string) 'https://wpc.bar/b/' .  $barcode->unique_code),
             'barcode_format' => $barcode->barcode_format?->value ?? $barcode->barcode_format,
             'barcode_image_base64' => base64_encode($pngBinary),
             'barcode_svg' => $svgMarkup,
