@@ -152,6 +152,7 @@
             let currentSvg = '';
             let currentUniqueCode = '';
             let currentPublicUrl = '';
+            let currentLabelText = '';
 
             function setError(message) {
                 if (!message) {
@@ -194,6 +195,7 @@
                 currentPngBase64 = '';
                 currentSvg = '';
                 currentUniqueCode = '';
+                currentLabelText = '';
             }
 
             function showPreview(response) {
@@ -201,14 +203,14 @@
                 currentSvg = response.barcode_svg || '';
                 currentUniqueCode = response.unique_code || '';
                 currentPublicUrl = response.public_url || '';
-
+                currentLabelText = response.custom_label || response.unique_code || '';
                 previewCard.classList.add('is-ready');
                 previewSkeleton.classList.add('d-none');
                 previewContent.classList.remove('d-none');
 
                 barcodePreview.src = 'data:image/png;base64,' + currentPngBase64;
                 barcodePreview.style.display = 'inline-block';
-                humanReadableText.textContent = response.custom_label || response.unique_code || '';
+                humanReadableText.textContent = currentLabelText;
                 uniqueCodeDisplay.textContent = 'Unique Code: ' + currentUniqueCode;
                 uniqueCodeDisplay.classList.remove('d-none');
                 if (currentPublicUrl) {
@@ -389,8 +391,7 @@
                     return;
                 }
 
-                openPrintWindow('data:image/png;base64,' + currentPngBase64, humanReadableText.textContent ||
-                    currentUniqueCode);
+                openPrintWindow('data:image/png;base64,' + currentPngBase64, currentLabelText || currentUniqueCode);
             });
 
             generateAnother.addEventListener('click', function(event) {
@@ -444,5 +445,9 @@
         })();
     </script>
 @endpush
+
+
+
+
 
 

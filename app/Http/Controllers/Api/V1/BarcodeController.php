@@ -100,7 +100,12 @@ class BarcodeController extends Controller
             'custom_label' => $barcode->custom_label,
             'barcode_image_url' => $barcode->barcode_image_path ? Storage::disk('public')->url($barcode->barcode_image_path) : null,
             'barcode_image_path' => $barcode->barcode_image_path,
-            'barcode_svg' => $this->makeSvgMarkup($barcode->unique_code, $barcode->barcode_format?->value ?? $barcode->barcode_format, $barcode->barcode_data),
+            'barcode_svg' => $this->makeSvgMarkup(
+                $barcode->unique_code,
+                $barcode->barcode_format?->value ?? $barcode->barcode_format,
+                $barcode->barcode_data,
+                $this->resolveDisplayLabel($barcode->custom_label, $barcode->unique_code)
+            ),
             'is_active' => (bool) $barcode->is_active,
             'product' => $snapshot,
             'user' => $barcode->user ? [
@@ -144,7 +149,8 @@ class BarcodeController extends Controller
         $format = $validated['barcode_format'];
         $barcodePayload = $this->resolveBarcodePayload($uniqueCode, $format, $validated['barcode_data']);
 
-        [$pngBinary, $svgMarkup] = $this->makeBarcodeAssets($barcodePayload, $format);
+        $label = $this->resolveDisplayLabel($validated['custom_label'] ?? null, $uniqueCode);
+        [$pngBinary, $svgMarkup] = $this->makeBarcodeAssets($barcodePayload, $format, $label);
 
         $barcodePath = 'barcodes/' . $uniqueCode . '.png';
         Storage::disk('public')->put($barcodePath, $pngBinary);
@@ -241,7 +247,7 @@ class BarcodeController extends Controller
     /**
      * @return array{0:string,1:string}
      */
-    private function makeBarcodeAssets(string $payload, string $format): array
+    private function makeBarcodeAssets(string $payload, string $format, ?string $label = null): array
     {
         $pngGenerator = new BarcodeGeneratorPNG();
         $svgGenerator = new BarcodeGeneratorSVG();
@@ -250,15 +256,130 @@ class BarcodeController extends Controller
         $png = $pngGenerator->getBarcode($payload, $type, 4, 120);
         $svg = $svgGenerator->getBarcode($payload, $type, 4, 120);
 
+        $label = trim((string) $label);
+        if ($label !== '') {
+            $png = $this->appendLabelToPng($png, $label);
+            $svg = $this->appendLabelToSvg($svg, $label);
+        }
+
         return [$png, $svg];
     }
 
-    private function makeSvgMarkup(string $uniqueCode, ?string $format, string $barcodeData): string
+    private function makeSvgMarkup(string $uniqueCode, ?string $format, string $barcodeData, ?string $label = null): string
     {
         $payload = $this->resolveBarcodePayload($uniqueCode, $format ?? 'code128', $barcodeData);
-        [, $svg] = $this->makeBarcodeAssets($payload, $format ?? 'code128');
+        [, $svg] = $this->makeBarcodeAssets($payload, $format ?? 'code128', $label);
 
         return $svg;
+    }
+
+    private function resolveDisplayLabel(?string $customLabel, string $uniqueCode): string
+    {
+        $label = trim((string) $customLabel);
+
+        return $label !== '' ? $label : $uniqueCode;
+    }
+
+    private function appendLabelToPng(string $pngBinary, string $label): string
+    {
+        if (! function_exists('imagecreatefromstring') || ! function_exists('imagepng')) {
+            return $pngBinary;
+        }
+
+        $source = @imagecreatefromstring($pngBinary);
+        if (! $source) {
+            return $pngBinary;
+        }
+
+        $width = imagesx($source);
+        $height = imagesy($source);
+        $paddingX = 18;
+        $paddingTop = 14;
+        $paddingBottom = 18;
+        $fontPath = 'C:\Windows\Fonts\arial.ttf';
+        $useTrueType = is_file($fontPath) && function_exists('imagettfbbox') && function_exists('imagettftext');
+
+        $bbox = $useTrueType ? imagettfbbox(20, 0, $fontPath, $label) : null;
+        $labelBoxWidth = $useTrueType
+            ? (int) abs(($bbox[4] ?? 0) - ($bbox[0] ?? 0))
+            : imagefontwidth(5) * strlen($label);
+        $labelHeight = $useTrueType ? 26 : imagefontheight(5);
+        $canvasWidth = max($width, $labelBoxWidth + ($paddingX * 2));
+        $canvasHeight = $height + $labelHeight + $paddingTop + $paddingBottom;
+
+        $canvas = imagecreatetruecolor($canvasWidth, $canvasHeight);
+        $white = imagecolorallocate($canvas, 255, 255, 255);
+        $black = imagecolorallocate($canvas, 0, 0, 0);
+        imagefill($canvas, 0, 0, $white);
+
+        $x = (int) floor(($canvasWidth - $width) / 2);
+        imagecopy($canvas, $source, $x, 0, 0, 0, $width, $height);
+
+        if ($useTrueType) {
+            $textWidth = (int) abs(($bbox[4] ?? 0) - ($bbox[0] ?? 0));
+            $textX = (int) floor(($canvasWidth - $textWidth) / 2);
+            $textY = $height + $paddingTop + 22;
+            imagettftext($canvas, 20, 0, $textX, $textY, $black, $fontPath, $label);
+        } else {
+            $font = 5;
+            $textWidth = imagefontwidth($font) * strlen($label);
+            imagestring($canvas, $font, (int) floor(($canvasWidth - $textWidth) / 2), $height + $paddingTop, $label, $black);
+        }
+
+        ob_start();
+        imagepng($canvas);
+        $output = (string) ob_get_clean();
+
+        imagedestroy($source);
+        imagedestroy($canvas);
+
+        return $output ?: $pngBinary;
+    }
+
+    private function appendLabelToSvg(string $svgMarkup, string $label): string
+    {
+        if (! preg_match('/<svg\\b[^>]*>/i', $svgMarkup, $matches, PREG_OFFSET_CAPTURE)) {
+            return $svgMarkup;
+        }
+
+        $width = $this->extractSvgDimension($svgMarkup, 'width');
+        $height = $this->extractSvgDimension($svgMarkup, 'height');
+        $labelHeight = 32;
+        $totalHeight = $height ? $height + $labelHeight : null;
+
+        $svgMarkup = preg_replace_callback('/<svg\\b([^>]*)>/i', function (array $m) use ($totalHeight) {
+            $attrs = $m[1];
+            if ($totalHeight !== null) {
+                if (preg_match('/\\bheight="[^"]*"/i', $attrs)) {
+                    $attrs = preg_replace('/\\bheight="[^"]*"/i', 'height="' . $totalHeight . '"', $attrs);
+                } else {
+                    $attrs .= ' height="' . $totalHeight . '"';
+                }
+            }
+
+            return '<svg' . $attrs . '>';
+        }, $svgMarkup, 1);
+
+        $labelX = $width ? (int) floor($width / 2) : 0;
+        $labelY = $height ? $height + 24 : 24;
+        $label = htmlspecialchars($label, ENT_QUOTES, 'UTF-8');
+        $labelNode = '<text x="' . $labelX . '" y="' . $labelY . '" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#000">' . $label . '</text>';
+
+        return substr_replace($svgMarkup, $labelNode, $matches[0][1] + strlen($matches[0][0]), 0);
+    }
+
+    private function extractSvgDimension(string $svgMarkup, string $attribute): ?int
+    {
+        if (! preg_match('/' . preg_quote($attribute, '/') . '="([^"]+)"/i', $svgMarkup, $matches)) {
+            return null;
+        }
+
+        $value = (string) $matches[1];
+        if (preg_match('/^(\d+(?:\.\d+)?)/', $value, $numberMatches)) {
+            return (int) round((float) $numberMatches[1]);
+        }
+
+        return null;
     }
 
     private function mapFormatToPicqerType(string $format): string
@@ -276,6 +397,8 @@ class BarcodeController extends Controller
         return addcslashes($value, '\\%_');
     }
 }
+
+
 
 
 
