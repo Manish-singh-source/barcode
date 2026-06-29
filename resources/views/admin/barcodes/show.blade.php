@@ -362,6 +362,8 @@
                                 align-items: center;
                                 justify-content: center;
                                 font-family: Arial, sans-serif;
+                                box-sizing: border-box;
+                                padding: 12mm 10mm;
                             }
                             .barcode-print {
                                 display: flex;
@@ -369,6 +371,7 @@
                                 align-items: center;
                                 justify-content: center;
                                 width: 100%;
+                                max-width: calc(100vw - 20mm);
                                 text-align: center;
                             }
                             .barcode-print img {
@@ -395,6 +398,7 @@
                                 body {
                                     -webkit-print-color-adjust: exact;
                                     print-color-adjust: exact;
+                                    padding: 12mm 10mm;
                                 }
                                 .barcode-print {
                                     page-break-inside: avoid;
@@ -468,3 +472,6 @@
         })();
     </script>
 @endpush
+
+
+
